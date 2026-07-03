@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     # --- CORS ---
     frontend_origin: str = "http://localhost:3000"
 
+    # --- Admin ---
+    # An admin user is auto-provisioned on startup when ADMIN_PASSWORD is set.
+    # Keep the password OUT of source control — set it via the environment.
+    admin_email: str = "admin@collabdash.com"
+    admin_password: str = ""  # empty => no admin auto-provisioned
+
     # --- Realtime ---
     # "memory" uses an in-process broadcaster (single instance / dev).
     # "redis" would use Redis Pub/Sub for multi-instance fan-out.

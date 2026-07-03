@@ -131,6 +131,22 @@ Backend settings are read from the environment (see [`backend/.env.example`](bac
 | `REFRESH_TOKEN_EXPIRE_DAYS` | `7` | refresh token lifetime |
 | `FRONTEND_ORIGIN` | `http://localhost:3000` | CORS origin |
 | `BROADCASTER` | `memory` | `memory` or `redis` |
+| `ADMIN_EMAIL` | `admin@collabdash.com` | Admin console login |
+| `ADMIN_PASSWORD` | *(empty)* | Set to auto-provision the admin user; **keep out of source control** |
+
+### Admin console
+
+Setting `ADMIN_PASSWORD` provisions an admin account on startup (created if missing,
+credentials kept authoritative on every boot). Logging in as that user reveals an
+**Admin** area with full view / add / edit / delete over every table. The admin API
+(`/api/admin/*`) is guarded by an `is_admin` check; password hashes and tokens are
+never exposed to the console.
+
+```bash
+# local: enable the admin console
+export ADMIN_PASSWORD='choose-a-strong-password'
+uvicorn app.main:app --reload --port 8010
+```
 
 Frontend reads `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` (see
 [`frontend/.env.local`](frontend/.env.local)).

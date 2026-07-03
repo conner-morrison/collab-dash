@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import Avatar from "./Avatar";
 import { useAppData } from "@/lib/appdata";
 import { useWs } from "@/lib/ws";
+import { useAuth } from "@/lib/auth";
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { friends, incomingRequests } = useAppData();
   const { onlineUsers, connected } = useWs();
+  const { user } = useAuth();
   const pathname = usePathname();
 
   const navItem = (href: string, label: string, icon: string, badge?: number) => {
@@ -39,6 +41,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="space-y-1 px-3 py-4">
         {navItem("/app", "Home", "🏠")}
         {navItem("/app/friends", "Friends", "👥", incomingRequests.length)}
+        {user?.is_admin && navItem("/app/admin", "Admin", "🛠️")}
       </nav>
 
       <div className="px-4 pb-2 pt-2">

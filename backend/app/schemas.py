@@ -49,6 +49,7 @@ class UserOut(BaseModel):
     display_name: str
     avatar_color: str
     is_verified: bool
+    is_admin: bool = False
     created_at: datetime
 
 

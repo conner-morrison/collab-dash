@@ -4,7 +4,23 @@ export interface User {
   display_name: string;
   avatar_color: string;
   is_verified: boolean;
+  is_admin: boolean;
   created_at: string;
+}
+
+export interface AdminColumn {
+  name: string;
+  type: string;
+  nullable: boolean;
+  primary_key: boolean;
+  readonly: boolean;
+}
+
+export interface AdminTable {
+  name: string;
+  count: number;
+  columns: AdminColumn[];
+  supports_password: boolean;
 }
 
 export interface PublicUser {

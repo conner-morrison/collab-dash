@@ -13,9 +13,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import events
+from .bootstrap import ensure_admin, run_migrations
 from .config import settings
 from .database import Base, engine
-from .routers import auth, chat, dashboard, friends, notifications, schedule, ws
+from .routers import admin, auth, chat, dashboard, friends, notifications, schedule, ws
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,6 +24,8 @@ logging.basicConfig(level=logging.INFO)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    run_migrations(engine)
+    ensure_admin()
     events.bind_loop(asyncio.get_running_loop())
     yield
 
@@ -43,6 +46,7 @@ app.include_router(chat.router)
 app.include_router(dashboard.router)
 app.include_router(schedule.router)
 app.include_router(notifications.router)
+app.include_router(admin.router)
 app.include_router(ws.router)
 
 

@@ -43,6 +43,7 @@ class User(Base):
     avatar_color: Mapped[str] = mapped_column(String(9), default="#6366f1")
 
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     verification_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
     reset_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
     reset_token_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

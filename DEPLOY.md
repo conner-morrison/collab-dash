@@ -145,6 +145,8 @@ The backend only accepts requests from the origin in `FRONTEND_ORIGIN`.
 | `FRONTEND_ORIGIN` | `https://app.vercel.app` | ✅ | CORS allow-origin |
 | `BROADCASTER` | `memory` | – | `memory` (single instance) or `redis` |
 | `REDIS_URL` | `redis://…` | only if `BROADCASTER=redis` | Pub/Sub bus |
+| `ADMIN_EMAIL` | `admin@collabdash.com` | – | Admin console login email |
+| `ADMIN_PASSWORD` | strong secret | for admin console | Auto-provisions the admin user; **secret — set only in the host env** |
 | `PORT` | *(auto)* | – | **Injected by Railway — don't set** |
 
 ### Frontend — Vercel
