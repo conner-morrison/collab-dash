@@ -1,0 +1,54 @@
+"""Application configuration.
+
+Values are read from the environment (or a .env file) so the same code runs
+in local development (SQLite) and production (PostgreSQL + Redis).
+"""
+from functools import lru_cache
+
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # --- Core ---
+    app_name: str = "Collaborative Project Dashboard"
+    environment: str = "development"
+
+    # --- Database ---
+    # Defaults to a local SQLite file so the project runs with zero setup.
+    # In production set DATABASE_URL to a PostgreSQL DSN.
+    database_url: str = "sqlite:///./dashboard.db"
+
+    # --- Auth / JWT ---
+    jwt_secret: str = "dev-secret-change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+
+    # --- CORS ---
+    frontend_origin: str = "http://localhost:3000"
+
+    # --- Realtime ---
+    # "memory" uses an in-process broadcaster (single instance / dev).
+    # "redis" would use Redis Pub/Sub for multi-instance fan-out.
+    broadcaster: str = "memory"
+    redis_url: str = "redis://localhost:6379/0"
+
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_db_url(cls, v: str) -> str:
+        # Managed providers (Heroku, some Railway/Render URLs) emit the legacy
+        # "postgres://" scheme, which SQLAlchemy 2.0 no longer accepts.
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()
