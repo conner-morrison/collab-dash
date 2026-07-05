@@ -81,10 +81,12 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
       map.get(k)!.push(it);
     }
     return [...map.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
+      // By Date: newest date group first. By Client: keep clients alphabetical.
+      .sort((a, b) => (view === "date" ? b[0].localeCompare(a[0]) : a[0].localeCompare(b[0])))
       .map(([k, list]) => ({
         key: k,
-        items: [...list].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)),
+        // Most recent entry on top within each group.
+        items: [...list].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)),
       }));
   }, [items, view]);
 
