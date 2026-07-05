@@ -86,9 +86,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             <p className="text-sm font-semibold text-slate-800">{user.display_name}</p>
                             <p className="truncate text-xs text-slate-400">{user.email}</p>
                           </div>
+                          <Link
+                            href="/app/profile"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <span>⚙️</span> Profile &amp; settings
+                          </Link>
                           <button
                             onClick={logout}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                            className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
                           >
                             <span>↩</span> Sign out
                           </button>

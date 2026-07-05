@@ -50,6 +50,7 @@ class UserOut(BaseModel):
     avatar_color: str
     is_verified: bool
     is_admin: bool = False
+    show_email: bool = True
     created_at: datetime
 
 
@@ -57,8 +58,20 @@ class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     display_name: str
-    email: EmailStr
+    email: EmailStr | None = None  # hidden when the user opts out of showing it
     avatar_color: str
+
+
+class UpdateProfileIn(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=120)
+    email: EmailStr | None = None
+    avatar_color: str | None = None
+    show_email: bool | None = None
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6, max_length=128)
 
 
 # ---------- Friends ----------

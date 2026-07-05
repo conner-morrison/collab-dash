@@ -22,6 +22,7 @@ from ..services import (
     existing_friendship,
     notify,
     other_member,
+    public_user,
     search_users,
 )
 
@@ -29,12 +30,12 @@ router = APIRouter(prefix="/api", tags=["friends"])
 
 
 def _public(u: User) -> dict:
-    return UserPublic.model_validate(u).model_dump()
+    return public_user(u)
 
 
 @router.get("/users/search", response_model=list[UserPublic])
 def search(q: str = Query(min_length=1), current: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return search_users(db, q, current.id)
+    return [public_user(u) for u in search_users(db, q, current.id)]
 
 
 @router.post("/friend-requests", status_code=status.HTTP_201_CREATED)
@@ -112,8 +113,8 @@ def list_requests(current: User = Depends(get_current_user), db: Session = Depen
             id=r.id,
             status=r.status.value,
             created_at=r.created_at,
-            sender=UserPublic.model_validate(r.sender),
-            receiver=UserPublic.model_validate(r.receiver),
+            sender=public_user(r.sender),
+            receiver=public_user(r.receiver),
         )
         for r in reqs
     ]
@@ -154,7 +155,7 @@ def list_friends(current: User = Depends(get_current_user), db: Session = Depend
             FriendshipOut(
                 friendship_id=f.id,
                 dashboard_id=dash.id,
-                friend=UserPublic.model_validate(friend),
+                friend=public_user(friend),
                 created_at=f.created_at,
             )
         )

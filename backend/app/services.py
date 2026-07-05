@@ -9,6 +9,16 @@ from . import events
 from .models import AuditLog, Friend, Notification, SharedDashboard, User
 
 
+def public_user(u: User) -> dict:
+    """Serialize a user for OTHER users, hiding the email if they opted out."""
+    return {
+        "id": u.id,
+        "display_name": u.display_name,
+        "email": u.email if u.show_email else None,
+        "avatar_color": u.avatar_color,
+    }
+
+
 def canonical_pair(a: int, b: int) -> tuple[int, int]:
     return (a, b) if a < b else (b, a)
 

@@ -27,11 +27,18 @@ def run_migrations(engine: Engine) -> None:
         return  # fresh DB; create_all already built it with every column
 
     user_columns = {c["name"] for c in inspector.get_columns("users")}
+    false_default = "0" if engine.dialect.name == "sqlite" else "FALSE"
+    true_default = "1" if engine.dialect.name == "sqlite" else "TRUE"
+
     if "is_admin" not in user_columns:
-        default = "0" if engine.dialect.name == "sqlite" else "FALSE"
         with engine.begin() as conn:
-            conn.execute(text(f"ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT {default}"))
+            conn.execute(text(f"ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT {false_default}"))
         log.info("Migration: added users.is_admin")
+
+    if "show_email" not in user_columns:
+        with engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE users ADD COLUMN show_email BOOLEAN NOT NULL DEFAULT {true_default}"))
+        log.info("Migration: added users.show_email")
 
 
 def ensure_admin() -> None:

@@ -5,6 +5,7 @@ export interface User {
   avatar_color: string;
   is_verified: boolean;
   is_admin: boolean;
+  show_email: boolean;
   created_at: string;
 }
 
@@ -26,7 +27,7 @@ export interface AdminTable {
 export interface PublicUser {
   id: number;
   display_name: string;
-  email: string;
+  email: string | null;
   avatar_color: string;
 }
 

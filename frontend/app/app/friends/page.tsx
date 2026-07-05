@@ -94,7 +94,7 @@ export default function FriendsPage() {
                   <Avatar name={u.display_name} color={u.avatar_color} size={40} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-slate-800">{u.display_name}</p>
-                    <p className="truncate text-sm text-slate-400">{u.email}</p>
+                    <p className="truncate text-sm text-slate-400">{u.email ?? "Email hidden"}</p>
                   </div>
                   {isFriend ? (
                     <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-600">Friends</span>
@@ -146,7 +146,7 @@ export default function FriendsPage() {
                 <Avatar name={r.receiver.display_name} color={r.receiver.avatar_color} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-slate-800">{r.receiver.display_name}</p>
-                  <p className="truncate text-sm text-slate-400">{r.receiver.email}</p>
+                  <p className="truncate text-sm text-slate-400">{r.receiver.email ?? "Email hidden"}</p>
                 </div>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">Pending</span>
               </div>
