@@ -68,6 +68,11 @@ export interface StickyNote {
   updated_at: string;
 }
 
+export interface ScheduleReference {
+  label: string;
+  url: string;
+}
+
 export interface ScheduleItem {
   id: number;
   dashboard_id: number;
@@ -77,6 +82,7 @@ export interface ScheduleItem {
   client: string;
   task: string;
   status: "planned" | "in_progress" | "done";
+  reference_urls: ScheduleReference[];
 }
 
 export interface ScheduleGroup {

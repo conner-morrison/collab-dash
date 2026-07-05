@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 # ---------- Auth ----------
@@ -138,6 +138,11 @@ class StickyNoteUpdate(BaseModel):
 
 
 # ---------- Schedules ----------
+class ScheduleReference(BaseModel):
+    label: str = Field(default="", max_length=160)
+    url: str = Field(min_length=1, max_length=2000)
+
+
 class ScheduleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -148,6 +153,12 @@ class ScheduleOut(BaseModel):
     client: str
     task: str
     status: str
+    reference_urls: list[ScheduleReference] = []
+
+    @field_validator("reference_urls", mode="before")
+    @classmethod
+    def _default_refs(cls, v):
+        return v or []
 
 
 class ScheduleCreate(BaseModel):
@@ -156,6 +167,7 @@ class ScheduleCreate(BaseModel):
     client: str = Field(min_length=1, max_length=160)
     task: str = ""
     status: str = "planned"
+    reference_urls: list[ScheduleReference] = []
 
 
 class ScheduleUpdate(BaseModel):
@@ -164,6 +176,7 @@ class ScheduleUpdate(BaseModel):
     client: str | None = None
     task: str | None = None
     status: str | None = None
+    reference_urls: list[ScheduleReference] | None = None
 
 
 # ---------- Notifications ----------

@@ -45,6 +45,14 @@ def run_migrations(engine: Engine) -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url TEXT"))
         log.info("Migration: added users.avatar_url")
 
+    if "schedules" in inspector.get_table_names():
+        schedule_columns = {c["name"] for c in inspector.get_columns("schedules")}
+        if "reference_urls" not in schedule_columns:
+            # JSON works on PostgreSQL; SQLite accepts it with TEXT affinity.
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE schedules ADD COLUMN reference_urls JSON"))
+            log.info("Migration: added schedules.reference_urls")
+
 
 def ensure_admin() -> None:
     """Create (or update) the admin account from ADMIN_EMAIL / ADMIN_PASSWORD.
