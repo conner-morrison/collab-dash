@@ -5,6 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 import Avatar from "@/components/Avatar";
+import AvatarCropModal from "@/components/AvatarCropModal";
 
 const AVATAR_COLORS = [
   "#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ef4444", "#14b8a6", "#0ea5e9",
@@ -25,11 +26,12 @@ export default function ProfilePage() {
   const [savingPassword, setSavingPassword] = useState(false);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
 
-  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+  function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file later
     if (!f) return;
@@ -41,13 +43,24 @@ export default function ProfilePage() {
       push({ kind: "error", title: "Image too large", body: "Max 5 MB" });
       return;
     }
+    // Open the crop editor instead of uploading immediately.
+    setCropSrc(URL.createObjectURL(f));
+  }
+
+  function closeCropper() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  }
+
+  async function uploadCropped(blob: Blob) {
     setUploadingAvatar(true);
     try {
       const form = new FormData();
-      form.append("file", f);
+      form.append("file", blob, "avatar.jpg");
       await api("/api/users/me/avatar", { method: "POST", body: form });
       await refreshUser();
       push({ kind: "success", title: "Avatar updated" });
+      closeCropper();
     } catch (err) {
       push({ kind: "error", title: "Upload failed", body: err instanceof ApiError ? err.message : "" });
     } finally {
@@ -232,6 +245,15 @@ export default function ProfilePage() {
           </button>
         </div>
       </form>
+
+      {cropSrc && (
+        <AvatarCropModal
+          src={cropSrc}
+          busy={uploadingAvatar}
+          onCancel={closeCropper}
+          onCropped={uploadCropped}
+        />
+      )}
     </div>
   );
 }
