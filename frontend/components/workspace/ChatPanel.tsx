@@ -85,7 +85,7 @@ export default function ChatPanel({ friendshipId, friend }: { friendshipId: numb
           const isLast = i === messages.length - 1;
           return (
             <div key={m.id} className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
-              {!mine && <Avatar name={friend.display_name} color={friend.avatar_color} size={28} />}
+              {!mine && <Avatar name={friend.display_name} color={friend.avatar_color} imageUrl={friend.avatar_url} size={28} />}
               <div className={`max-w-[75%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                 <div
                   className={`rounded-2xl px-4 py-2 text-sm shadow-sm ${

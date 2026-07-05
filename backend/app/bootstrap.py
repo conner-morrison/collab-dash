@@ -40,6 +40,11 @@ def run_migrations(engine: Engine) -> None:
             conn.execute(text(f"ALTER TABLE users ADD COLUMN show_email BOOLEAN NOT NULL DEFAULT {true_default}"))
         log.info("Migration: added users.show_email")
 
+    if "avatar_url" not in user_columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url TEXT"))
+        log.info("Migration: added users.avatar_url")
+
 
 def ensure_admin() -> None:
     """Create (or update) the admin account from ADMIN_EMAIL / ADMIN_PASSWORD.

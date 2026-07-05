@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
@@ -24,7 +24,49 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
   if (!user) return null;
+
+  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      push({ kind: "error", title: "Please choose an image file" });
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      push({ kind: "error", title: "Image too large", body: "Max 5 MB" });
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const form = new FormData();
+      form.append("file", f);
+      await api("/api/users/me/avatar", { method: "POST", body: form });
+      await refreshUser();
+      push({ kind: "success", title: "Avatar updated" });
+    } catch (err) {
+      push({ kind: "error", title: "Upload failed", body: err instanceof ApiError ? err.message : "" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function removeAvatar() {
+    setUploadingAvatar(true);
+    try {
+      await api("/api/users/me/avatar", { method: "DELETE" });
+      await refreshUser();
+      push({ kind: "success", title: "Avatar removed" });
+    } catch (err) {
+      push({ kind: "error", title: "Couldn't remove avatar", body: err instanceof ApiError ? err.message : "" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
 
   const dirty =
     displayName !== user.display_name ||
@@ -76,24 +118,52 @@ export default function ProfilePage() {
       <form onSubmit={saveProfile} className="card mt-6 p-6">
         <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
 
-        <div className="mt-5 flex items-center gap-4">
-          <Avatar name={displayName || user.display_name} color={color} size={64} />
-          <div>
-            <p className="text-sm font-medium text-slate-600">Avatar color</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {AVATAR_COLORS.map((c) => (
-                <button
-                  type="button"
-                  key={c}
-                  onClick={() => setColor(c)}
-                  className={`h-7 w-7 rounded-full ring-2 transition ${
-                    color === c ? "ring-slate-800 ring-offset-2" : "ring-transparent"
-                  }`}
-                  style={{ backgroundColor: c }}
-                  aria-label={`Use ${c}`}
-                />
-              ))}
+        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <Avatar name={displayName || user.display_name} color={color} imageUrl={user.avatar_url} size={72} />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onPickAvatar}
+              />
+              <button
+                type="button"
+                className="btn-ghost py-1.5"
+                onClick={() => fileInput.current?.click()}
+                disabled={uploadingAvatar}
+              >
+                {uploadingAvatar ? "Uploading…" : user.avatar_url ? "Change photo" : "Upload photo"}
+              </button>
+              {user.avatar_url && (
+                <button type="button" className="btn-danger py-1.5" onClick={removeAvatar} disabled={uploadingAvatar}>
+                  Remove
+                </button>
+              )}
             </div>
+            <p className="text-xs text-slate-400">JPG or PNG, up to 5 MB. Square images look best.</p>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <p className="text-sm font-medium text-slate-600">
+            Avatar color {user.avatar_url && <span className="text-slate-400">(used when no photo is set)</span>}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {AVATAR_COLORS.map((c) => (
+              <button
+                type="button"
+                key={c}
+                onClick={() => setColor(c)}
+                className={`h-7 w-7 rounded-full ring-2 transition ${
+                  color === c ? "ring-slate-800 ring-offset-2" : "ring-transparent"
+                }`}
+                style={{ backgroundColor: c }}
+                aria-label={`Use ${c}`}
+              />
+            ))}
           </div>
         </div>
 

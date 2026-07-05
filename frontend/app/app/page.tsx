@@ -62,7 +62,7 @@ export default function HomePage() {
                     href={`/app/workspace/${f.friendship_id}`}
                     className="flex items-center gap-3 rounded-xl p-2 hover:bg-slate-50"
                   >
-                    <Avatar name={f.friend.display_name} color={f.friend.avatar_color} size={40} online={onlineUsers.has(f.friend.id)} />
+                    <Avatar name={f.friend.display_name} color={f.friend.avatar_color} imageUrl={f.friend.avatar_url} size={40} online={onlineUsers.has(f.friend.id)} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-slate-800">{f.friend.display_name}</p>
                       <p className="truncate text-sm text-slate-400">Shared dashboard</p>

@@ -48,6 +48,7 @@ class UserOut(BaseModel):
     email: EmailStr
     display_name: str
     avatar_color: str
+    avatar_url: str | None = None
     is_verified: bool
     is_admin: bool = False
     show_email: bool = True
@@ -60,6 +61,7 @@ class UserPublic(BaseModel):
     display_name: str
     email: EmailStr | None = None  # hidden when the user opts out of showing it
     avatar_color: str
+    avatar_url: str | None = None
 
 
 class UpdateProfileIn(BaseModel):

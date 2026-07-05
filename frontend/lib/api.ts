@@ -61,14 +61,16 @@ interface RequestOptions {
 
 export async function api<T = any>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, auth = true } = opts;
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // For FormData let the browser set the multipart boundary Content-Type itself.
+  if (body !== undefined && !isFormData) headers["Content-Type"] = "application/json";
   if (auth && tokenStore.access) headers["Authorization"] = `Bearer ${tokenStore.access}`;
 
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body === undefined ? undefined : isFormData ? (body as FormData) : JSON.stringify(body),
   });
 
   if (res.status === 401 && auth && !opts._retried) {

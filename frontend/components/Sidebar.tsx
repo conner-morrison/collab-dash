@@ -72,7 +72,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   active ? "bg-brand-50" : "hover:bg-slate-100"
                 }`}
               >
-                <Avatar name={f.friend.display_name} color={f.friend.avatar_color} size={34} online={onlineUsers.has(f.friend.id)} />
+                <Avatar name={f.friend.display_name} color={f.friend.avatar_color} imageUrl={f.friend.avatar_url} size={34} online={onlineUsers.has(f.friend.id)} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-slate-800">{f.friend.display_name}</span>
                   <span className="block truncate text-xs text-slate-400">

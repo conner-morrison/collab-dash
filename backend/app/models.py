@@ -14,6 +14,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -41,6 +42,8 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar_color: Mapped[str] = mapped_column(String(9), default="#6366f1")
+    # Optional uploaded avatar, stored as a compressed data URI (persists in the DB).
+    avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

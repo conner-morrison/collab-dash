@@ -91,7 +91,7 @@ export default function FriendsPage() {
               const isPending = pendingIds.has(u.id) || sentIds.has(u.id);
               return (
                 <div key={u.id} className="flex items-center gap-3 py-3">
-                  <Avatar name={u.display_name} color={u.avatar_color} size={40} />
+                  <Avatar name={u.display_name} color={u.avatar_color} imageUrl={u.avatar_url} size={40} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-slate-800">{u.display_name}</p>
                     <p className="truncate text-sm text-slate-400">{u.email ?? "Email hidden"}</p>
@@ -119,7 +119,7 @@ export default function FriendsPage() {
           <div className="mt-4 space-y-3">
             {incomingRequests.map((r) => (
               <div key={r.id} className="flex items-center gap-3">
-                <Avatar name={r.sender.display_name} color={r.sender.avatar_color} size={40} />
+                <Avatar name={r.sender.display_name} color={r.sender.avatar_color} imageUrl={r.sender.avatar_url} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-slate-800">{r.sender.display_name}</p>
                   <p className="truncate text-sm text-slate-400">wants to connect</p>
@@ -143,7 +143,7 @@ export default function FriendsPage() {
           <div className="mt-4 space-y-3">
             {outgoing.map((r) => (
               <div key={r.id} className="flex items-center gap-3">
-                <Avatar name={r.receiver.display_name} color={r.receiver.avatar_color} size={40} />
+                <Avatar name={r.receiver.display_name} color={r.receiver.avatar_color} imageUrl={r.receiver.avatar_url} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-slate-800">{r.receiver.display_name}</p>
                   <p className="truncate text-sm text-slate-400">{r.receiver.email ?? "Email hidden"}</p>
@@ -168,7 +168,7 @@ export default function FriendsPage() {
                 href={`/app/workspace/${f.friendship_id}`}
                 className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 hover:border-brand-200 hover:bg-brand-50/40"
               >
-                <Avatar name={f.friend.display_name} color={f.friend.avatar_color} size={44} />
+                <Avatar name={f.friend.display_name} color={f.friend.avatar_color} imageUrl={f.friend.avatar_url} size={44} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-slate-800">{f.friend.display_name}</p>
                   <p className="truncate text-sm text-slate-400">Open shared workspace →</p>

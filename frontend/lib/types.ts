@@ -3,6 +3,7 @@ export interface User {
   email: string;
   display_name: string;
   avatar_color: string;
+  avatar_url: string | null;
   is_verified: boolean;
   is_admin: boolean;
   show_email: boolean;
@@ -29,6 +30,7 @@ export interface PublicUser {
   display_name: string;
   email: string | null;
   avatar_color: string;
+  avatar_url: string | null;
 }
 
 export interface Friendship {

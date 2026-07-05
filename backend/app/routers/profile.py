@@ -1,7 +1,11 @@
 """Self-service profile management: update your own profile and password."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import base64
+import io
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -14,6 +18,29 @@ router = APIRouter(prefix="/api/users", tags=["profile"])
 
 # Palette offered in the UI; other values are still accepted if sent.
 AVATAR_COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ef4444", "#14b8a6", "#0ea5e9"]
+
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB raw upload cap
+AVATAR_SIZE = 256  # output square size in px
+
+
+def _to_avatar_data_uri(raw: bytes) -> str:
+    """Center-crop to a square, resize to 256px, and return a compressed JPEG data URI."""
+    try:
+        img = Image.open(io.BytesIO(raw))
+        img.load()
+    except (UnidentifiedImageError, OSError):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That file isn't a valid image")
+
+    img = img.convert("RGB")
+    w, h = img.size
+    side = min(w, h)
+    left, top = (w - side) // 2, (h - side) // 2
+    img = img.crop((left, top, left + side, top + side)).resize((AVATAR_SIZE, AVATAR_SIZE))
+
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=82, optimize=True)
+    encoded = base64.b64encode(buf.getvalue()).decode("ascii")
+    return f"data:image/jpeg;base64,{encoded}"
 
 
 @router.patch("/me", response_model=UserOut)
@@ -38,6 +65,34 @@ def update_me(
         current.show_email = payload.show_email
 
     audit(db, current.id, "profile_update")
+    db.commit()
+    db.refresh(current)
+    return current
+
+
+@router.post("/me/avatar", response_model=UserOut)
+def upload_avatar(
+    file: UploadFile = File(...),
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not (file.content_type or "").startswith("image/"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Please upload an image file")
+    raw = file.file.read()
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Image too large (max 5 MB)")
+
+    current.avatar_url = _to_avatar_data_uri(raw)
+    audit(db, current.id, "avatar_upload")
+    db.commit()
+    db.refresh(current)
+    return current
+
+
+@router.delete("/me/avatar", response_model=UserOut)
+def remove_avatar(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current.avatar_url = None
+    audit(db, current.id, "avatar_remove")
     db.commit()
     db.refresh(current)
     return current

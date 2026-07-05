@@ -16,6 +16,7 @@ def public_user(u: User) -> dict:
         "display_name": u.display_name,
         "email": u.email if u.show_email else None,
         "avatar_color": u.avatar_color,
+        "avatar_url": u.avatar_url,
     }
 
 

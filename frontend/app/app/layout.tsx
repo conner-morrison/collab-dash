@@ -75,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       onClick={() => setMenuOpen((o) => !o)}
                       className="flex items-center gap-2 rounded-full p-1 pr-2 hover:bg-slate-100"
                     >
-                      <Avatar name={user.display_name} color={user.avatar_color} size={34} />
+                      <Avatar name={user.display_name} color={user.avatar_color} imageUrl={user.avatar_url} size={34} />
                       <span className="hidden text-sm font-medium text-slate-700 sm:block">{user.display_name}</span>
                     </button>
                     {menuOpen && (

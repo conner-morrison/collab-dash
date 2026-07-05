@@ -57,7 +57,7 @@ export default function WorkspacePage() {
       {/* Workspace header */}
       <div className="shrink-0 border-b border-slate-200 bg-white px-4 pt-4 sm:px-6">
         <div className="flex items-center gap-3">
-          <Avatar name={friendship.friend.display_name} color={friendship.friend.avatar_color} size={44} online={online} />
+          <Avatar name={friendship.friend.display_name} color={friendship.friend.avatar_color} imageUrl={friendship.friend.avatar_url} size={44} online={online} />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-semibold text-slate-900">
               {friendship.friend.display_name}
