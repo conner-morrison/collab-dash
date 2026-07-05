@@ -66,7 +66,6 @@ class UserPublic(BaseModel):
 
 class UpdateProfileIn(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
-    email: EmailStr | None = None
     avatar_color: str | None = None
     show_email: bool | None = None
 

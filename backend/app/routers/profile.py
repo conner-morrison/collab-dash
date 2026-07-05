@@ -52,11 +52,7 @@ def update_me(
     if payload.display_name is not None:
         current.display_name = payload.display_name
 
-    if payload.email is not None and payload.email != current.email:
-        clash = db.query(User).filter(User.email == payload.email, User.id != current.id).first()
-        if clash:
-            raise HTTPException(status.HTTP_409_CONFLICT, "That email is already in use")
-        current.email = payload.email
+    # Email is intentionally not editable via self-service profile updates.
 
     if payload.avatar_color is not None:
         current.avatar_color = payload.avatar_color

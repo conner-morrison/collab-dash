@@ -16,7 +16,6 @@ export default function ProfilePage() {
   const { push } = useToast();
 
   const [displayName, setDisplayName] = useState(user?.display_name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
   const [color, setColor] = useState(user?.avatar_color ?? "#6366f1");
   const [showEmail, setShowEmail] = useState(user?.show_email ?? true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -83,7 +82,6 @@ export default function ProfilePage() {
 
   const dirty =
     displayName !== user.display_name ||
-    email !== user.email ||
     color !== user.avatar_color ||
     showEmail !== user.show_email;
 
@@ -93,7 +91,7 @@ export default function ProfilePage() {
     try {
       await api("/api/users/me", {
         method: "PATCH",
-        body: { display_name: displayName, email, avatar_color: color, show_email: showEmail },
+        body: { display_name: displayName, avatar_color: color, show_email: showEmail },
       });
       await refreshUser();
       push({ kind: "success", title: "Profile updated" });
@@ -187,7 +185,14 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="label">Email</label>
-            <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input
+              className="input cursor-not-allowed bg-slate-50 text-slate-500"
+              type="email"
+              value={user.email}
+              readOnly
+              disabled
+            />
+            <p className="mt-1 text-xs text-slate-400">Your email can&apos;t be changed.</p>
           </div>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-3">
