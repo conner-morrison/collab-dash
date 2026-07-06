@@ -1,8 +1,8 @@
 """Authentication: register, email verification, login, refresh, password reset.
 
-Email delivery is stubbed for local development: verification and reset tokens
-are returned in the API response (and logged) instead of being emailed. Swap
-`_deliver` for a real transactional-email call in production.
+Verification and reset emails are sent via SendGrid when configured (see
+app/mailer.py). Without SendGrid, the token is logged and returned in the API
+response outside production, so the flow still works in development.
 """
 from __future__ import annotations
 
@@ -10,9 +10,10 @@ import logging
 import random
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from .. import mailer
 from ..config import settings
 from ..database import get_db
 from ..models import User
@@ -43,12 +44,8 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 AVATAR_COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ef4444", "#14b8a6"]
 
 
-def _deliver(kind: str, email: str, token: str) -> None:
-    log.info("[email:%s] to=%s token=%s", kind, email, token)
-
-
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterIn, db: Session = Depends(get_db)):
+def register(payload: RegisterIn, background: BackgroundTasks, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
 
@@ -65,7 +62,8 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
     db.flush()
     audit(db, user.id, "register", payload.email)
     db.commit()
-    _deliver("verify", payload.email, token)
+    # Send the verification email in the background so the response isn't blocked.
+    background.add_task(mailer.send_verification_email, payload.email, token)
     # dev_token is exposed only outside production so the UI can auto-verify.
     return {
         "message": "Registered. Check your email to verify your account.",
@@ -114,7 +112,7 @@ def refresh(payload: RefreshIn, db: Session = Depends(get_db)):
 
 
 @router.post("/forgot-password")
-def forgot_password(payload: ForgotPasswordIn, db: Session = Depends(get_db)):
+def forgot_password(payload: ForgotPasswordIn, background: BackgroundTasks, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
     dev_token = None
     if user:
@@ -122,7 +120,7 @@ def forgot_password(payload: ForgotPasswordIn, db: Session = Depends(get_db)):
         user.reset_token = token
         user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
         db.commit()
-        _deliver("reset", payload.email, token)
+        background.add_task(mailer.send_reset_email, user.email, token)
         if settings.environment != "production":
             dev_token = token
     # Always return success to avoid leaking which emails are registered.

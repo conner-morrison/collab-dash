@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     broadcaster: str = "memory"
     redis_url: str = "redis://localhost:6379/0"
 
+    # --- Email (SendGrid) ---
+    # When sendgrid_api_key + email_from are set, verification/reset emails are
+    # sent for real. Otherwise the app falls back to logging the link (dev).
+    sendgrid_api_key: str = ""
+    email_from: str = ""  # a SendGrid-verified sender address
+    email_from_name: str = "Collab Dashboard"
+
     @field_validator("database_url")
     @classmethod
     def _normalize_db_url(cls, v: str) -> str:

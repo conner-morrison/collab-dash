@@ -187,8 +187,9 @@ easy to run while staying faithful to the intended production stack:
   (the ORM is database-agnostic; `docker compose` uses Postgres).
 - **Realtime** — an in-process broadcaster behind a clean interface; Redis Pub/Sub drops
   in at `app/realtime.py` for horizontal scaling (`BROADCASTER=redis`).
-- **Email** — verification & reset tokens are logged / returned in dev instead of emailed;
-  point `_deliver()` in `routers/auth.py` at a transactional-email provider for prod.
+- **Email** — verification & password-reset emails are sent via **SendGrid** when
+  `SENDGRID_API_KEY` + `EMAIL_FROM` are set ([app/mailer.py](backend/app/mailer.py)); otherwise
+  the link is logged / returned in dev so the flow still works without email setup.
 - **Audit logs** are written for security-relevant actions (register, login, requests, etc.).
 
 ## 🔮 Future enhancements (from the spec)

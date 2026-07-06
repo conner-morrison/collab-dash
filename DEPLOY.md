@@ -147,7 +147,17 @@ The backend only accepts requests from the origin in `FRONTEND_ORIGIN`.
 | `REDIS_URL` | `redis://…` | only if `BROADCASTER=redis` | Pub/Sub bus |
 | `ADMIN_EMAIL` | `admin@collabdash.com` | – | Admin console login email |
 | `ADMIN_PASSWORD` | strong secret | for admin console | Auto-provisions the admin user; **secret — set only in the host env** |
+| `SENDGRID_API_KEY` | `SG.xxxxx` | for real emails | Enables verification/reset email delivery |
+| `EMAIL_FROM` | `no-reply@yourdomain.com` | with SendGrid | **SendGrid-verified** sender address |
+| `EMAIL_FROM_NAME` | `Collab Dashboard` | – | Display name on outgoing email |
 | `PORT` | *(auto)* | – | **Injected by Railway — don't set** |
+
+> **Enabling real emails (SendGrid):** create a SendGrid account → **Settings →
+> API Keys** (create a key with *Mail Send* permission) → **Settings → Sender
+> Authentication** (verify a Single Sender or your domain). Set `SENDGRID_API_KEY`
+> and `EMAIL_FROM` (the verified address). With these set, new signups receive a
+> real verification link; without them, the token is logged and (outside
+> production) returned in the API response for the in-app "Verify now" button.
 
 ### Frontend — Vercel
 | Variable | Example | Required | Purpose |
