@@ -57,6 +57,14 @@ def run_migrations(engine: Engine) -> None:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE schedules ADD COLUMN reference_urls JSON"))
             log.info("Migration: added schedules.reference_urls")
+        if "note" not in schedule_columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE schedules ADD COLUMN note TEXT NOT NULL DEFAULT ''"))
+            log.info("Migration: added schedules.note")
+        if "result" not in schedule_columns:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE schedules ADD COLUMN result TEXT NOT NULL DEFAULT ''"))
+            log.info("Migration: added schedules.result")
 
     if "messages" in inspector.get_table_names():
         message_columns = {c["name"] for c in inspector.get_columns("messages")}

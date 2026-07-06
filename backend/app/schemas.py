@@ -167,6 +167,8 @@ class ScheduleOut(BaseModel):
     client: str
     task: str
     status: str
+    note: str = ""
+    result: str = ""
     reference_urls: list[ScheduleReference] = []
 
     @field_validator("reference_urls", mode="before")
@@ -181,6 +183,8 @@ class ScheduleCreate(BaseModel):
     client: str = Field(min_length=1, max_length=160)
     task: str = ""
     status: str = "planned"
+    note: str = ""
+    result: str = ""
     reference_urls: list[ScheduleReference] = []
 
 
@@ -190,6 +194,8 @@ class ScheduleUpdate(BaseModel):
     client: str | None = None
     task: str | None = None
     status: str | None = None
+    note: str | None = None
+    result: str | None = None
     reference_urls: list[ScheduleReference] | None = None
 
 

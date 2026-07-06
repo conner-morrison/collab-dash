@@ -84,6 +84,8 @@ export interface ScheduleItem {
   client: string;
   task: string;
   status: "planned" | "in_progress" | "done";
+  note: string;
+  result: string;
   reference_urls: ScheduleReference[];
 }
 

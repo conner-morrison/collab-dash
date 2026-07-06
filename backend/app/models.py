@@ -151,6 +151,8 @@ class Schedule(Base):
     client: Mapped[str] = mapped_column(String(160), index=True)
     task: Mapped[str] = mapped_column(String(300), default="")
     status: Mapped[str] = mapped_column(String(20), default="planned")  # planned|in_progress|done
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")  # description of the entry
+    result: Mapped[str] = mapped_column(Text, nullable=False, default="")  # outcome after it happened
     # List of reference documents: [{"label": str, "url": str}, ...]
     reference_urls: Mapped[list | None] = mapped_column(JSON, nullable=True, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

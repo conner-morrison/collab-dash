@@ -102,6 +102,14 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
     api(`/api/dashboards/${dashboardId}/schedules/${id}`, { method: "DELETE" }).catch(() => {});
   }
 
+  // Inline field editing on the card (note / result), saved on blur.
+  function setField(id: number, patch: Partial<ScheduleItem>) {
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  }
+  function saveField(id: number, patch: Partial<ScheduleItem>) {
+    api(`/api/dashboards/${dashboardId}/schedules/${id}`, { method: "PATCH", body: patch }).catch(() => {});
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
@@ -130,7 +138,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
             <p className="mt-2 text-sm">No schedule entries yet. Add your first one!</p>
           </div>
         ) : (
-          <div className="mx-auto max-w-3xl space-y-6">
+          <div className="mx-auto max-w-5xl space-y-6">
             {groups.map((g) => (
               <div key={g.key}>
                 <div className="mb-2 flex items-center gap-2">
@@ -143,54 +151,72 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                 </div>
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                   {g.items.map((it, i) => (
-                    <div
-                      key={it.id}
-                      className={`flex items-start gap-3 px-4 py-3 ${i > 0 ? "border-t border-slate-100" : ""}`}
-                    >
-                      <span className="w-14 shrink-0 pt-0.5 text-sm font-medium tabular-nums text-slate-500">{it.time}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-slate-800">{it.task || "(no task)"}</p>
-                        <p className="truncate text-sm text-slate-400">
-                          {view === "date" ? it.client : formatDateHeading(it.date)}
-                        </p>
-                        {it.reference_urls?.length > 0 && (
-                          <div className="mt-1.5 flex flex-wrap gap-1.5">
-                            {it.reference_urls.map((ref, idx) => (
-                              <a
-                                key={idx}
-                                href={normalizeUrl(ref.url)}
-                                target="_blank"
-                                rel="noreferrer"
-                                title={ref.url}
-                                className="inline-flex max-w-[14rem] items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
-                              >
-                                <Link2 size={12} className="shrink-0" />
-                                <span className="truncate">{ref.label || hostOf(ref.url)}</span>
-                              </a>
-                            ))}
-                          </div>
-                        )}
+                    <div key={it.id} className={`px-4 py-3 ${i > 0 ? "border-t border-slate-100" : ""}`}>
+                      <div className="flex items-start gap-3">
+                        <span className="w-14 shrink-0 pt-0.5 text-sm font-medium tabular-nums text-slate-500">{it.time}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-slate-800">{it.task || "(no task)"}</p>
+                          <p className="truncate text-sm text-slate-400">
+                            {view === "date" ? it.client : formatDateHeading(it.date)}
+                          </p>
+                          {it.reference_urls?.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              {it.reference_urls.map((ref, idx) => (
+                                <a
+                                  key={idx}
+                                  href={normalizeUrl(ref.url)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={ref.url}
+                                  className="inline-flex max-w-[14rem] items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                                >
+                                  <Link2 size={12} className="shrink-0" />
+                                  <span className="truncate">{ref.label || hostOf(ref.url)}</span>
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => cycleStatus(it)}
+                          className={`mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[it.status]}`}
+                          title="Click to change status"
+                        >
+                          {STATUS_LABEL[it.status]}
+                        </button>
+                        <button
+                          onClick={() => setFormItem(it)}
+                          className="mt-0.5 shrink-0 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => remove(it.id)}
+                          className="mt-1 shrink-0 text-slate-300 hover:text-red-500"
+                          aria-label="Delete entry"
+                        >
+                          <X size={16} />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => cycleStatus(it)}
-                        className={`mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[it.status]}`}
-                        title="Click to change status"
-                      >
-                        {STATUS_LABEL[it.status]}
-                      </button>
-                      <button
-                        onClick={() => setFormItem(it)}
-                        className="mt-0.5 shrink-0 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => remove(it.id)}
-                        className="mt-1 shrink-0 text-slate-300 hover:text-red-500"
-                        aria-label="Delete entry"
-                      >
-                        <X size={16} />
-                      </button>
+
+                      {/* Editable note + result */}
+                      <div className="mt-2.5 grid gap-2 sm:grid-cols-2 sm:pl-14">
+                        {(["note", "result"] as const).map((field) => (
+                          <div key={field}>
+                            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400">
+                              {field === "note" ? "Note" : "Result"}
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={it[field]}
+                              placeholder={field === "note" ? "Describe this schedule…" : "Write the result…"}
+                              onChange={(e) => setField(it.id, { [field]: e.target.value })}
+                              onBlur={(e) => saveField(it.id, { [field]: e.target.value })}
+                              className="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
