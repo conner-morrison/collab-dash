@@ -36,7 +36,7 @@ from ..security import (
     new_token,
     verify_password,
 )
-from ..services import audit
+from ..services import audit, display_name_taken
 
 log = logging.getLogger("auth")
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -48,6 +48,8 @@ AVATAR_COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6
 def register(payload: RegisterIn, background: BackgroundTasks, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+    if display_name_taken(db, payload.display_name):
+        raise HTTPException(status.HTTP_409_CONFLICT, "That display name is already taken")
 
     token = new_token()
     user = User(

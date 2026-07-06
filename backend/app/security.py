@@ -70,3 +70,16 @@ def get_current_admin(current: User = Depends(get_current_user)) -> User:
     if not current.is_admin:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required")
     return current
+
+
+def get_optional_user(
+    token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> User | None:
+    """Resolve the current user if a valid token is present, else None (no error)."""
+    if not token:
+        return None
+    try:
+        user_id = decode_token(token, "access")
+    except HTTPException:
+        return None
+    return db.get(User, user_id)

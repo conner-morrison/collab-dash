@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useNameCheck } from "@/lib/useNameCheck";
 import { useToast } from "@/components/Toast";
 import Avatar from "@/components/Avatar";
 import AvatarCropModal from "@/components/AvatarCropModal";
@@ -28,6 +29,8 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const { taken: nameTaken, suggestion: nameSuggestion } = useNameCheck(displayName, user?.display_name);
 
   if (!user) return null;
 
@@ -189,6 +192,23 @@ export default function ProfilePage() {
           <div>
             <label className="label">Display name</label>
             <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+            {nameTaken && (
+              <p className="mt-1 text-xs text-amber-600">
+                That name is taken.
+                {nameSuggestion && (
+                  <>
+                    {" "}Try{" "}
+                    <button
+                      type="button"
+                      onClick={() => setDisplayName(nameSuggestion)}
+                      className="font-semibold text-brand-600 underline hover:text-brand-700"
+                    >
+                      {nameSuggestion}
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
           </div>
           <div>
             <label className="label">Email</label>
@@ -242,7 +262,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button className="btn-primary" disabled={savingProfile || !dirty}>
+          <button className="btn-primary" disabled={savingProfile || !dirty || nameTaken}>
             {savingProfile ? "Saving…" : "Save changes"}
           </button>
         </div>

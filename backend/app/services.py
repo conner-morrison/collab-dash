@@ -1,6 +1,8 @@
 """Shared service helpers used across routers."""
 from __future__ import annotations
 
+import secrets
+
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -97,6 +99,24 @@ def notify(db: Session, user_id: int, ntype: str, title: str, body: str = "") ->
 
 def audit(db: Session, user_id: int | None, action: str, detail: str = "") -> None:
     db.add(AuditLog(user_id=user_id, action=action, detail=detail))
+
+
+def display_name_taken(db: Session, name: str, exclude_id: int | None = None) -> bool:
+    """Whether another user already uses this display name (case-insensitive)."""
+    q = db.query(User).filter(func.lower(User.display_name) == name.strip().lower())
+    if exclude_id is not None:
+        q = q.filter(User.id != exclude_id)
+    return db.query(q.exists()).scalar()
+
+
+def suggest_display_name(db: Session, name: str, exclude_id: int | None = None) -> str:
+    """Return an available variant of `name` by appending a number."""
+    base = name.strip()
+    for n in range(2, 1000):
+        candidate = f"{base} {n}"
+        if not display_name_taken(db, candidate, exclude_id):
+            return candidate
+    return f"{base} {secrets.token_hex(2)}"  # pragma: no cover — effectively unreachable
 
 
 def search_users(db: Session, query: str, exclude_id: int, limit: int = 20) -> list[User]:

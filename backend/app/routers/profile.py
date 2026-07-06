@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import User
 from ..schemas import ChangePasswordIn, UpdateProfileIn, UserOut
-from ..security import get_current_user, hash_password, verify_password
-from ..services import audit
+from ..security import get_current_user, get_optional_user, hash_password, verify_password
+from ..services import audit, display_name_taken, suggest_display_name
 
 router = APIRouter(prefix="/api/users", tags=["profile"])
 
@@ -43,6 +43,25 @@ def _to_avatar_data_uri(raw: bytes) -> str:
     return f"data:image/jpeg;base64,{encoded}"
 
 
+@router.get("/check-name")
+def check_name(
+    name: str,
+    current: User | None = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+):
+    """Report whether a display name is available, with a suggestion if not.
+
+    Works for signup (no auth) and profile editing (excludes your own account).
+    """
+    name = name.strip()
+    exclude = current.id if current else None
+    if not name:
+        return {"available": False, "suggestion": None}
+    if not display_name_taken(db, name, exclude):
+        return {"available": True, "suggestion": None}
+    return {"available": False, "suggestion": suggest_display_name(db, name, exclude)}
+
+
 @router.patch("/me", response_model=UserOut)
 def update_me(
     payload: UpdateProfileIn,
@@ -50,6 +69,8 @@ def update_me(
     db: Session = Depends(get_db),
 ):
     if payload.display_name is not None:
+        if display_name_taken(db, payload.display_name, current.id):
+            raise HTTPException(status.HTTP_409_CONFLICT, "That display name is already taken")
         current.display_name = payload.display_name
 
     # Email is intentionally not editable via self-service profile updates.

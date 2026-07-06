@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/AuthShell";
 import { api, ApiError } from "@/lib/api";
+import { useNameCheck } from "@/lib/useNameCheck";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function RegisterPage() {
   const [busy, setBusy] = useState(false);
   const [devToken, setDevToken] = useState<string | null>(null);
   const [verified, setVerified] = useState(false);
+  const { taken: nameTaken, suggestion: nameSuggestion } = useNameCheck(form.display_name);
 
   function update(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -93,6 +95,23 @@ export default function RegisterPage() {
         <div>
           <label className="label">Display name</label>
           <input className="input" value={form.display_name} onChange={(e) => update("display_name", e.target.value)} placeholder="Jane Doe" required />
+          {nameTaken && (
+            <p className="mt-1 text-xs text-amber-600">
+              That name is taken.
+              {nameSuggestion && (
+                <>
+                  {" "}Try{" "}
+                  <button
+                    type="button"
+                    onClick={() => update("display_name", nameSuggestion)}
+                    className="font-semibold text-brand-600 underline hover:text-brand-700"
+                  >
+                    {nameSuggestion}
+                  </button>
+                </>
+              )}
+            </p>
+          )}
         </div>
         <div>
           <label className="label">Email</label>
@@ -103,7 +122,7 @@ export default function RegisterPage() {
           <input className="input" type="password" value={form.password} onChange={(e) => update("password", e.target.value)} placeholder="At least 6 characters" minLength={6} required />
         </div>
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-        <button className="btn-primary w-full" disabled={busy}>
+        <button className="btn-primary w-full" disabled={busy || nameTaken}>
           {busy ? "Creating account…" : "Create account"}
         </button>
       </form>
