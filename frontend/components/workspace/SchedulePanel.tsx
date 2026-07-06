@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Link2, X } from "lucide-react";
+import { CalendarDays, Link2, Search, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useWs } from "@/lib/ws";
 import type { ScheduleItem, ScheduleReference } from "@/lib/types";
@@ -43,6 +43,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   const { subscribe } = useWs();
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [view, setView] = useState<View>("date");
+  const [query, setQuery] = useState("");
   // undefined = closed, null = creating, item = editing
   const [formItem, setFormItem] = useState<ScheduleItem | null | undefined>(undefined);
 
@@ -73,10 +74,30 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
     return () => unsub.forEach((u) => u());
   }, [subscribe, dashboardId]);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((it) => {
+      const hay = [
+        it.task,
+        it.client,
+        it.note,
+        it.result,
+        it.date,
+        it.time,
+        it.status,
+        ...(it.reference_urls?.flatMap((r) => [r.label, r.url]) ?? []),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [items, query]);
+
   const groups = useMemo(() => {
     const key: keyof ScheduleItem = view === "date" ? "date" : "client";
     const map = new Map<string, ScheduleItem[]>();
-    for (const it of items) {
+    for (const it of filtered) {
       const k = it[key] as string;
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(it);
@@ -89,7 +110,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
         // Most recent entry on top within each group.
         items: [...list].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)),
       }));
-  }, [items, view]);
+  }, [filtered, view]);
 
   async function cycleStatus(item: ScheduleItem) {
     const status = NEXT_STATUS[item.status] as ScheduleItem["status"];
@@ -112,30 +133,59 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
-        <div className="inline-flex rounded-lg bg-slate-100 p-1">
-          {(["date", "client"] as View[]).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                view === v ? "bg-white text-brand-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {v === "date" ? "By Date" : "By Client"}
-            </button>
-          ))}
+      <div className="shrink-0 space-y-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex rounded-lg bg-slate-100 p-1">
+            {(["date", "client"] as View[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  view === v ? "bg-white text-brand-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {v === "date" ? "By Date" : "By Client"}
+              </button>
+            ))}
+          </div>
+          <button className="btn-primary" onClick={() => setFormItem(null)}>
+            + Add entry
+          </button>
         </div>
-        <button className="btn-primary" onClick={() => setFormItem(null)}>
-          + Add entry
-        </button>
+        <div className="relative">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            className="input pl-9 pr-9"
+            placeholder="Search schedules — task, client, note, result, link…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              aria-label="Clear search"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
         {groups.length === 0 ? (
           <div className="mx-auto mt-10 max-w-sm text-center text-slate-400">
-            <CalendarDays size={40} className="mx-auto" strokeWidth={1.5} />
-            <p className="mt-2 text-sm">No schedule entries yet. Add your first one!</p>
+            {query.trim() ? (
+              <>
+                <Search size={40} className="mx-auto" strokeWidth={1.5} />
+                <p className="mt-2 text-sm">No entries match “{query.trim()}”.</p>
+              </>
+            ) : (
+              <>
+                <CalendarDays size={40} className="mx-auto" strokeWidth={1.5} />
+                <p className="mt-2 text-sm">No schedule entries yet. Add your first one!</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="mx-auto max-w-5xl space-y-6">
