@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, CheckCheck, MessageCircle, Pencil, Trash2, X } from "lucide-react";
+import { Check, CheckCheck, MessageCircle, Pencil, Search, Trash2, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useWs } from "@/lib/ws";
@@ -13,6 +13,30 @@ function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+/** Render `text` with every case-insensitive occurrence of `q` highlighted. */
+function highlight(text: string, q: string): React.ReactNode {
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const ql = q.toLowerCase();
+  const parts: React.ReactNode[] = [];
+  let i = 0;
+  while (i <= text.length) {
+    const j = lower.indexOf(ql, i);
+    if (j === -1) {
+      parts.push(text.slice(i));
+      break;
+    }
+    if (j > i) parts.push(text.slice(i, j));
+    parts.push(
+      <mark key={j} className="rounded bg-amber-300 px-0.5 text-slate-900">
+        {text.slice(j, j + q.length)}
+      </mark>
+    );
+    i = j + q.length;
+  }
+  return parts;
+}
+
 export default function ChatPanel({ friendshipId, friend }: { friendshipId: number; friend: PublicUser }) {
   const { user } = useAuth();
   const { subscribe } = useWs();
@@ -22,7 +46,11 @@ export default function ChatPanel({ friendshipId, friend }: { friendshipId: numb
   const [sending, setSending] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
+  const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const q = search.trim();
+  const visible = q ? messages.filter((m) => m.body.toLowerCase().includes(q.toLowerCase())) : messages;
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -116,12 +144,30 @@ export default function ChatPanel({ friendshipId, friend }: { friendshipId: numb
 
   return (
     <div className="flex h-full flex-col bg-slate-50">
-      {/* Header with clear-chat */}
+      {/* Header: search + clear-chat */}
       {messages.length > 0 && (
-        <div className="flex shrink-0 items-center justify-end border-b border-slate-200 bg-white px-4 py-2 sm:px-6">
+        <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 sm:px-6">
+          <div className="relative flex-1">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              className="input h-9 pl-9 pr-8 text-sm"
+              placeholder="Search messages…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
           <button
             onClick={clearChat}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-red-50 hover:text-red-600"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-red-50 hover:text-red-600"
           >
             <Trash2 size={14} /> Clear chat
           </button>
@@ -135,7 +181,14 @@ export default function ChatPanel({ friendshipId, friend }: { friendshipId: numb
             <p className="mt-2 text-sm">No messages yet. Say hi to {friend.display_name}!</p>
           </div>
         )}
-        {messages.map((m) => {
+        {q && (
+          <p className="mb-1 text-center text-xs text-slate-400">
+            {visible.length === 0
+              ? `No messages match “${q}”`
+              : `${visible.length} result${visible.length === 1 ? "" : "s"} for “${q}”`}
+          </p>
+        )}
+        {visible.map((m) => {
           const mine = m.sender_id === user?.id;
           const editing = editingId === m.id;
           return (
@@ -193,7 +246,7 @@ export default function ChatPanel({ friendshipId, friend }: { friendshipId: numb
                         : "rounded-bl-md bg-white text-slate-800 ring-1 ring-slate-100"
                     }`}
                   >
-                    {m.body}
+                    {q ? highlight(m.body, q) : m.body}
                   </div>
                 )}
                 <span className="mt-1 flex items-center gap-1 px-1 text-[11px] text-slate-400">
