@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Link2, Search, X } from "lucide-react";
+import { CalendarDays, ChevronDown, Link2, Search, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useWs } from "@/lib/ws";
 import type { ScheduleItem, ScheduleReference } from "@/lib/types";
@@ -44,8 +44,17 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [view, setView] = useState<View>("date");
   const [query, setQuery] = useState("");
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   // undefined = closed, null = creating, item = editing
   const [formItem, setFormItem] = useState<ScheduleItem | null | undefined>(undefined);
+
+  function toggleClient(key: string) {
+    setExpandedClients((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
 
   const reload = useCallback(async () => {
     const data = await api<{ items: ScheduleItem[] }>(`/api/dashboards/${dashboardId}/schedules`);
@@ -189,16 +198,37 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
           </div>
         ) : (
           <div className="mx-auto max-w-5xl space-y-6">
-            {groups.map((g) => (
+            {groups.map((g) => {
+              const isClient = view === "client";
+              // By Date: always expanded. By Client: expanded when clicked, or while searching.
+              const open = !isClient || expandedClients.has(g.key) || !!query.trim();
+              return (
               <div key={g.key}>
-                <div className="mb-2 flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-slate-700">
-                    {view === "date" ? formatDateHeading(g.key) : g.key}
-                  </h3>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                    {g.items.length}
-                  </span>
-                </div>
+                {isClient ? (
+                  <button
+                    onClick={() => toggleClient(g.key)}
+                    className="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-semibold text-slate-800">{g.key}</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                        {g.items.length}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      size={18}
+                      className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                ) : (
+                  <div className="mb-2 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-slate-700">{formatDateHeading(g.key)}</h3>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                      {g.items.length}
+                    </span>
+                  </div>
+                )}
+                {open && (
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                   {g.items.map((it, i) => (
                     <div key={it.id} className={`px-4 py-3 ${i > 0 ? "border-t border-slate-100" : ""}`}>
@@ -270,8 +300,10 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                     </div>
                   ))}
                 </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
