@@ -24,24 +24,28 @@ export default function RegisterPage() {
     setError("");
     setBusy(true);
     try {
-      const res = await api<{ dev_verification_token: string | null }>("/api/auth/register", {
-        method: "POST",
-        auth: false,
-        body: form,
-      });
+      const res = await api<{ requires_verification?: boolean; dev_verification_token: string | null }>(
+        "/api/auth/register",
+        { method: "POST", auth: false, body: form }
+      );
       // Remember the credentials so the sign-in page can pre-fill them.
       try {
         sessionStorage.setItem("cpd.pendingLogin", JSON.stringify({ email: form.email, password: form.password }));
       } catch {
         /* ignore */
       }
+      if (!res.requires_verification) {
+        // Email delivery isn't configured — the account is already active.
+        router.replace("/login");
+        return;
+      }
       if (res.dev_verification_token) {
-        // No email server in dev: verify automatically, then go straight to sign in.
+        // Non-production with email enabled: verify automatically, then sign in.
         await api("/api/auth/verify", { method: "POST", auth: false, body: { token: res.dev_verification_token } }).catch(() => {});
         router.replace("/login");
         return;
       }
-      // Production: the user must click the emailed verification link first.
+      // Production with email: the user must click the emailed verification link.
       setSent(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Registration failed");

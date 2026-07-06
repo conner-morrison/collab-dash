@@ -51,25 +51,30 @@ def register(payload: RegisterIn, background: BackgroundTasks, db: Session = Dep
     if display_name_taken(db, payload.display_name):
         raise HTTPException(status.HTTP_409_CONFLICT, "That display name is already taken")
 
+    # Only require email verification when we can actually deliver the email.
+    # Without SendGrid configured, auto-verify so accounts are usable immediately.
+    email_enabled = bool(settings.sendgrid_api_key and settings.email_from)
     token = new_token()
     user = User(
         email=payload.email,
         display_name=payload.display_name,
         hashed_password=hash_password(payload.password),
         avatar_color=random.choice(AVATAR_COLORS),
-        verification_token=token,
-        is_verified=False,
+        verification_token=token if email_enabled else None,
+        is_verified=not email_enabled,
     )
     db.add(user)
     db.flush()
     audit(db, user.id, "register", payload.email)
     db.commit()
-    # Send the verification email in the background so the response isn't blocked.
-    background.add_task(mailer.send_verification_email, payload.email, token)
-    # dev_token is exposed only outside production so the UI can auto-verify.
+    if email_enabled:
+        # Send the verification email in the background so the response isn't blocked.
+        background.add_task(mailer.send_verification_email, payload.email, token)
     return {
-        "message": "Registered. Check your email to verify your account.",
-        "dev_verification_token": token if settings.environment != "production" else None,
+        "message": "Check your email to verify your account." if email_enabled else "Account created — you can sign in.",
+        "requires_verification": email_enabled,
+        # dev token lets the UI auto-verify in non-production when email IS enabled.
+        "dev_verification_token": token if (email_enabled and settings.environment != "production") else None,
     }
 
 
