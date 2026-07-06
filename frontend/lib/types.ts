@@ -54,6 +54,7 @@ export interface Message {
   sender_id: number;
   body: string;
   is_read: boolean;
+  edited_at: string | null;
   created_at: string;
 }
 

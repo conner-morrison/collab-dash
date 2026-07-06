@@ -103,10 +103,15 @@ class MessageOut(BaseModel):
     sender_id: int
     body: str
     is_read: bool
+    edited_at: datetime | None = None
     created_at: datetime
 
 
 class SendMessageIn(BaseModel):
+    body: str = Field(min_length=1, max_length=4000)
+
+
+class EditMessageIn(BaseModel):
     body: str = Field(min_length=1, max_length=4000)
 
 

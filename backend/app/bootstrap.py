@@ -53,6 +53,14 @@ def run_migrations(engine: Engine) -> None:
                 conn.execute(text("ALTER TABLE schedules ADD COLUMN reference_urls JSON"))
             log.info("Migration: added schedules.reference_urls")
 
+    if "messages" in inspector.get_table_names():
+        message_columns = {c["name"] for c in inspector.get_columns("messages")}
+        if "edited_at" not in message_columns:
+            ts_type = "DATETIME" if engine.dialect.name == "sqlite" else "TIMESTAMPTZ"
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE messages ADD COLUMN edited_at {ts_type}"))
+            log.info("Migration: added messages.edited_at")
+
 
 def ensure_admin() -> None:
     """Create (or update) the admin account from ADMIN_EMAIL / ADMIN_PASSWORD.
