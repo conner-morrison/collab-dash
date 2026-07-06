@@ -12,8 +12,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ display_name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [devToken, setDevToken] = useState<string | null>(null);
-  const [verified, setVerified] = useState(false);
+  const [sent, setSent] = useState(false);
   const { taken: nameTaken, suggestion: nameSuggestion } = useNameCheck(form.display_name);
 
   function update(k: keyof typeof form, v: string) {
@@ -30,7 +29,20 @@ export default function RegisterPage() {
         auth: false,
         body: form,
       });
-      setDevToken(res.dev_verification_token);
+      // Remember the credentials so the sign-in page can pre-fill them.
+      try {
+        sessionStorage.setItem("cpd.pendingLogin", JSON.stringify({ email: form.email, password: form.password }));
+      } catch {
+        /* ignore */
+      }
+      if (res.dev_verification_token) {
+        // No email server in dev: verify automatically, then go straight to sign in.
+        await api("/api/auth/verify", { method: "POST", auth: false, body: { token: res.dev_verification_token } }).catch(() => {});
+        router.replace("/login");
+        return;
+      }
+      // Production: the user must click the emailed verification link first.
+      setSent(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Registration failed");
     } finally {
@@ -38,41 +50,19 @@ export default function RegisterPage() {
     }
   }
 
-  async function verifyNow() {
-    if (!devToken) return;
-    setBusy(true);
-    try {
-      await api("/api/auth/verify", { method: "POST", auth: false, body: { token: devToken } });
-      setVerified(true);
-      setTimeout(() => router.push("/login"), 1200);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Verification failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (devToken) {
+  if (sent) {
     return (
       <AuthShell title="Verify your email" subtitle="We've sent a verification link to your inbox.">
         <div className="space-y-4">
           <div className="rounded-xl bg-brand-50 p-4 text-sm text-brand-800">
             <p className="font-medium">📬 Check your email</p>
             <p className="mt-1 text-brand-700">
-              In a production deployment a verification link would arrive by email. For this demo you
-              can verify instantly below.
+              Click the link in the email to verify your account, then sign in.
             </p>
           </div>
-          {verified ? (
-            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              ✅ Email verified! Redirecting to sign in…
-            </p>
-          ) : (
-            <button className="btn-primary w-full" onClick={verifyNow} disabled={busy}>
-              {busy ? "Verifying…" : "Verify now & continue"}
-            </button>
-          )}
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+          <button className="btn-primary w-full" onClick={() => router.push("/login")}>
+            Go to sign in
+          </button>
         </div>
       </AuthShell>
     );

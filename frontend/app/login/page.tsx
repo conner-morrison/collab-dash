@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/AuthShell";
@@ -14,6 +14,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Pre-fill credentials right after signing up (stashed by the register page).
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("cpd.pendingLogin");
+      if (raw) {
+        const creds = JSON.parse(raw);
+        if (creds.email) setEmail(creds.email);
+        if (creds.password) setPassword(creds.password);
+        sessionStorage.removeItem("cpd.pendingLogin");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
