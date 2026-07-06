@@ -6,14 +6,24 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
+class _NormalizesEmail(BaseModel):
+    """Mixin: trim + lowercase the `email` field so casing/whitespace can't
+    create or miss an account (e.g. Alice@Demo.dev == alice@demo.dev)."""
+
+    @field_validator("email", mode="before", check_fields=False)
+    @classmethod
+    def _normalize_email(cls, v):
+        return v.strip().lower() if isinstance(v, str) else v
+
+
 # ---------- Auth ----------
-class RegisterIn(BaseModel):
+class RegisterIn(_NormalizesEmail):
     email: EmailStr
     display_name: str = Field(min_length=1, max_length=120)
     password: str = Field(min_length=6, max_length=128)
 
 
-class LoginIn(BaseModel):
+class LoginIn(_NormalizesEmail):
     email: EmailStr
     password: str
 
@@ -32,7 +42,7 @@ class VerifyIn(BaseModel):
     token: str
 
 
-class ForgotPasswordIn(BaseModel):
+class ForgotPasswordIn(_NormalizesEmail):
     email: EmailStr
 
 
