@@ -52,6 +52,7 @@ class UserOut(BaseModel):
     is_verified: bool
     is_admin: bool = False
     show_email: bool = True
+    reminder_lead_minutes: int = 30
     created_at: datetime
 
 
@@ -68,6 +69,14 @@ class UpdateProfileIn(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
     avatar_color: str | None = None
     show_email: bool | None = None
+    reminder_lead_minutes: int | None = None
+
+    @field_validator("reminder_lead_minutes")
+    @classmethod
+    def _valid_lead(cls, v):
+        if v is not None and v not in (0, 10, 15, 30, 60):
+            raise ValueError("reminder_lead_minutes must be one of 0, 10, 15, 30, 60")
+        return v
 
 
 class ChangePasswordIn(BaseModel):

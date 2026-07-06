@@ -45,6 +45,11 @@ def run_migrations(engine: Engine) -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url TEXT"))
         log.info("Migration: added users.avatar_url")
 
+    if "reminder_lead_minutes" not in user_columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN reminder_lead_minutes INTEGER NOT NULL DEFAULT 30"))
+        log.info("Migration: added users.reminder_lead_minutes")
+
     if "schedules" in inspector.get_table_names():
         schedule_columns = {c["name"] for c in inspector.get_columns("schedules")}
         if "reference_urls" not in schedule_columns:

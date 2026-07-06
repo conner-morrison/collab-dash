@@ -6,14 +6,47 @@ from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from datetime import date, timedelta
+
 from .. import events
 from ..database import get_db
-from ..models import Schedule, User
+from ..models import Friend, Schedule, SharedDashboard, User
 from ..schemas import ScheduleCreate, ScheduleOut, ScheduleUpdate
 from ..security import get_current_user
 from ..services import dashboard_membership, friendship_members
 
 router = APIRouter(prefix="/api/dashboards", tags=["schedule"])
+upcoming_router = APIRouter(prefix="/api/schedules", tags=["schedule"])
+
+
+@upcoming_router.get("/upcoming")
+def upcoming_schedules(current: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """All schedule entries across the user's workspaces from ~today onward.
+
+    Used by the client-side meeting reminder; precise timing is computed in the
+    browser's local timezone, so this only coarsely filters by date.
+    """
+    friendships = (
+        db.query(Friend)
+        .filter((Friend.user_a_id == current.id) | (Friend.user_b_id == current.id))
+        .all()
+    )
+    dashboards = (
+        db.query(SharedDashboard)
+        .filter(SharedDashboard.friendship_id.in_([f.id for f in friendships]))
+        .all()
+    )
+    dash_ids = [d.id for d in dashboards]
+    if not dash_ids:
+        return {"items": []}
+
+    cutoff = (date.today() - timedelta(days=1)).isoformat()
+    rows = (
+        db.query(Schedule)
+        .filter(Schedule.dashboard_id.in_(dash_ids), Schedule.date >= cutoff)
+        .all()
+    )
+    return {"items": [ScheduleOut.model_validate(r).model_dump(mode="json") for r in rows]}
 
 
 def _members(db: Session, dashboard) -> list[int]:

@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { WsProvider } from "@/lib/ws";
 import { ToastProvider } from "@/components/Toast";
 import { AppDataProvider } from "@/lib/appdata";
+import { ReminderProvider } from "@/lib/reminders";
 import Sidebar from "@/components/Sidebar";
 import NotificationBell from "@/components/NotificationBell";
 import Avatar from "@/components/Avatar";
@@ -34,6 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <WsProvider enabled={!!user}>
       <ToastProvider>
         <AppDataProvider userId={user.id}>
+          <ReminderProvider />
           <div className="flex h-screen overflow-hidden bg-slate-50">
             {/* Sidebar (desktop) */}
             <aside className="hidden w-72 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">

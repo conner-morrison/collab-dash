@@ -7,6 +7,7 @@ export interface User {
   is_verified: boolean;
   is_admin: boolean;
   show_email: boolean;
+  reminder_lead_minutes: number;
   created_at: string;
 }
 

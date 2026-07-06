@@ -60,6 +60,9 @@ def update_me(
     if payload.show_email is not None:
         current.show_email = payload.show_email
 
+    if payload.reminder_lead_minutes is not None:
+        current.reminder_lead_minutes = payload.reminder_lead_minutes
+
     audit(db, current.id, "profile_update")
     db.commit()
     db.refresh(current)

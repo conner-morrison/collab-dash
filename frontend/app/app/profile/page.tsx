@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState(user?.display_name ?? "");
   const [color, setColor] = useState(user?.avatar_color ?? "#6366f1");
   const [showEmail, setShowEmail] = useState(user?.show_email ?? true);
+  const [reminderLead, setReminderLead] = useState(user?.reminder_lead_minutes ?? 30);
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -83,7 +84,8 @@ export default function ProfilePage() {
   const dirty =
     displayName !== user.display_name ||
     color !== user.avatar_color ||
-    showEmail !== user.show_email;
+    showEmail !== user.show_email ||
+    reminderLead !== user.reminder_lead_minutes;
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -91,7 +93,12 @@ export default function ProfilePage() {
     try {
       await api("/api/users/me", {
         method: "PATCH",
-        body: { display_name: displayName, avatar_color: color, show_email: showEmail },
+        body: {
+          display_name: displayName,
+          avatar_color: color,
+          show_email: showEmail,
+          reminder_lead_minutes: reminderLead,
+        },
       });
       await refreshUser();
       push({ kind: "success", title: "Profile updated" });
@@ -209,6 +216,29 @@ export default function ProfilePage() {
               </span>
             </span>
           </label>
+
+          <div>
+            <label className="label">Meeting reminder</label>
+            <select
+              className="input"
+              value={reminderLead}
+              onChange={(e) => {
+                setReminderLead(Number(e.target.value));
+                if (Number(e.target.value) > 0 && typeof Notification !== "undefined" && Notification.permission === "default") {
+                  Notification.requestPermission().catch(() => {});
+                }
+              }}
+            >
+              <option value={0}>Never</option>
+              <option value={10}>10 minutes before</option>
+              <option value={15}>15 minutes before</option>
+              <option value={30}>30 minutes before</option>
+              <option value={60}>1 hour before</option>
+            </select>
+            <p className="mt-1 text-xs text-slate-400">
+              Plays an alarm before each scheduled meeting while the app is open.
+            </p>
+          </div>
         </div>
 
         <div className="mt-6 flex justify-end">
