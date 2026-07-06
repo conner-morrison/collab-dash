@@ -77,7 +77,7 @@ export default function FriendsPage() {
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             className="input pl-9"
-            placeholder="Search by name or email…"
+            placeholder="Enter the exact full name or email…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

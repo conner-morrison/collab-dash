@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from . import events
@@ -100,11 +100,14 @@ def audit(db: Session, user_id: int | None, action: str, detail: str = "") -> No
 
 
 def search_users(db: Session, query: str, exclude_id: int, limit: int = 20) -> list[User]:
-    like = f"%{query.strip()}%"
+    """Exact (case-insensitive) match on full name or email — no partial matches."""
+    q = query.strip().lower()
+    if not q:
+        return []
     return (
         db.query(User)
         .filter(User.id != exclude_id)
-        .filter(or_(User.display_name.ilike(like), User.email.ilike(like)))
+        .filter(or_(func.lower(User.display_name) == q, func.lower(User.email) == q))
         .limit(limit)
         .all()
     )
