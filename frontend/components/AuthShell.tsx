@@ -14,10 +14,12 @@ export default function AuthShell({
 }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Brand panel */}
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 p-12 lg:flex lg:flex-col lg:justify-between">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-brand-400/20 blur-2xl" />
+      {/* Brand panel — business/scheduling photo with a legibility overlay */}
+      <div
+        className="relative hidden overflow-hidden bg-slate-900 bg-cover bg-center p-12 lg:flex lg:flex-col lg:justify-between"
+        style={{ backgroundImage: "url(/auth-bg.jpg)" }}
+      >
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/70 to-slate-900/75" />
         <Link href="/" className="relative z-10 flex items-center gap-2 text-white">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15"><LayoutGrid size={20} /></span>
           <span className="text-lg font-semibold tracking-tight">Collab Dashboard</span>
