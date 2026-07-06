@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ShieldCheck } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
@@ -89,7 +90,9 @@ export default function AdminPage() {
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-slate-900">🛠️ Admin console</h1>
+          <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900">
+            <ShieldCheck size={22} className="text-brand-600" /> Admin console
+          </h1>
           <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
             full database access
           </span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { AlertTriangle, Bell, CheckCircle2 } from "lucide-react";
 
 type ToastKind = "info" | "success" | "error";
 interface Toast {
@@ -16,7 +17,11 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-const ICONS: Record<ToastKind, string> = { info: "🔔", success: "✅", error: "⚠️" };
+const ICONS: Record<ToastKind, React.ReactNode> = {
+  info: <Bell size={18} className="text-brand-600" />,
+  success: <CheckCircle2 size={18} className="text-emerald-600" />,
+  error: <AlertTriangle size={18} className="text-red-600" />,
+};
 const RING: Record<ToastKind, string> = {
   info: "ring-brand-100",
   success: "ring-emerald-100",
@@ -43,7 +48,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             className={`pointer-events-auto animate-fade-in rounded-xl bg-white p-3 shadow-note ring-1 ${RING[t.kind]}`}
           >
             <div className="flex gap-3">
-              <span className="text-lg leading-none">{ICONS[t.kind]}</span>
+              <span className="mt-0.5 shrink-0">{ICONS[t.kind]}</span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-800">{t.title}</p>
                 {t.body && <p className="mt-0.5 truncate text-sm text-slate-500">{t.body}</p>}

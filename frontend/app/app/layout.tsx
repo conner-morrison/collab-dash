@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { LayoutGrid, LogOut, Menu, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { WsProvider } from "@/lib/ws";
 import { ToastProvider } from "@/components/Toast";
@@ -37,7 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Sidebar (desktop) */}
             <aside className="hidden w-72 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
               <div className="flex h-16 items-center gap-2 border-b border-slate-100 px-5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">◆</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white"><LayoutGrid size={18} /></span>
                 <span className="font-semibold tracking-tight text-slate-800">Collab Dashboard</span>
               </div>
               <Sidebar />
@@ -49,7 +50,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="absolute inset-0 bg-slate-900/40" onClick={() => setMobileOpen(false)} />
                 <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white shadow-xl">
                   <div className="flex h-16 items-center gap-2 border-b border-slate-100 px-5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">◆</span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white"><LayoutGrid size={18} /></span>
                     <span className="font-semibold tracking-tight text-slate-800">Collab Dashboard</span>
                   </div>
                   <Sidebar onNavigate={() => setMobileOpen(false)} />
@@ -65,7 +66,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   onClick={() => setMobileOpen(true)}
                   aria-label="Open menu"
                 >
-                  ☰
+                  <Menu size={20} />
                 </button>
                 <div className="hidden lg:block" />
                 <div className="flex items-center gap-2">
@@ -89,15 +90,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                           <Link
                             href="/app/profile"
                             onClick={() => setMenuOpen(false)}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
                           >
-                            <span>⚙️</span> Profile &amp; settings
+                            <Settings size={16} /> Profile &amp; settings
                           </Link>
                           <button
                             onClick={logout}
-                            className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                            className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
                           >
-                            <span>↩</span> Sign out
+                            <LogOut size={16} /> Sign out
                           </button>
                         </div>
                       </>

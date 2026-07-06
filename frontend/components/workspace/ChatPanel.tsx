@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MessageCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useWs } from "@/lib/ws";
@@ -76,7 +77,7 @@ export default function ChatPanel({ friendshipId, friend }: { friendshipId: numb
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-6 sm:px-8">
         {messages.length === 0 && (
           <div className="mx-auto mt-10 max-w-sm text-center text-slate-400">
-            <div className="text-4xl">💬</div>
+            <MessageCircle size={40} className="mx-auto" strokeWidth={1.5} />
             <p className="mt-2 text-sm">No messages yet. Say hi to {friend.display_name}!</p>
           </div>
         )}

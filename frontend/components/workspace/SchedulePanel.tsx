@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarDays, Link2, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useWs } from "@/lib/ws";
 import type { ScheduleItem, ScheduleReference } from "@/lib/types";
@@ -125,7 +126,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
         {groups.length === 0 ? (
           <div className="mx-auto mt-10 max-w-sm text-center text-slate-400">
-            <div className="text-4xl">📅</div>
+            <CalendarDays size={40} className="mx-auto" strokeWidth={1.5} />
             <p className="mt-2 text-sm">No schedule entries yet. Add your first one!</p>
           </div>
         ) : (
@@ -161,9 +162,10 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                                 target="_blank"
                                 rel="noreferrer"
                                 title={ref.url}
-                                className="inline-flex max-w-[14rem] items-center gap-1 truncate rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                                className="inline-flex max-w-[14rem] items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
                               >
-                                🔗 <span className="truncate">{ref.label || hostOf(ref.url)}</span>
+                                <Link2 size={12} className="shrink-0" />
+                                <span className="truncate">{ref.label || hostOf(ref.url)}</span>
                               </a>
                             ))}
                           </div>
@@ -187,7 +189,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                         className="mt-1 shrink-0 text-slate-300 hover:text-red-500"
                         aria-label="Delete entry"
                       >
-                        ✕
+                        <X size={16} />
                       </button>
                     </div>
                   ))}
@@ -333,7 +335,7 @@ function ScheduleForm({
                     className="shrink-0 rounded-md px-2 text-slate-400 hover:bg-red-50 hover:text-red-500"
                     aria-label="Remove link"
                   >
-                    ✕
+                    <X size={16} />
                   </button>
                 </div>
               ))}

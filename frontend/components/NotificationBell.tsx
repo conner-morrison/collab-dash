@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Bell, Calendar, MessageCircle, StickyNote, UserCheck, UserPlus } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAppData } from "@/lib/appdata";
 
@@ -14,12 +15,12 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-const ICONS: Record<string, string> = {
-  friend_request: "👋",
-  friend_accepted: "🤝",
-  message: "💬",
-  note: "📝",
-  schedule: "📅",
+const ICONS: Record<string, React.ReactNode> = {
+  friend_request: <UserPlus size={16} />,
+  friend_accepted: <UserCheck size={16} />,
+  message: <MessageCircle size={16} />,
+  note: <StickyNote size={16} />,
+  schedule: <Calendar size={16} />,
 };
 
 export default function NotificationBell() {
@@ -47,7 +48,7 @@ export default function NotificationBell() {
         className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
         aria-label="Notifications"
       >
-        <span className="text-lg">🔔</span>
+        <Bell size={20} />
         {unreadNotifications > 0 && (
           <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {unreadNotifications > 9 ? "9+" : unreadNotifications}
@@ -74,7 +75,7 @@ export default function NotificationBell() {
                   key={n.id}
                   className={`flex gap-3 px-4 py-3 text-sm ${n.is_read ? "" : "bg-brand-50/60"}`}
                 >
-                  <span className="text-lg leading-none">{ICONS[n.type] || "🔔"}</span>
+                  <span className="mt-0.5 text-brand-600">{ICONS[n.type] || <Bell size={16} />}</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-800">{n.title}</p>
                     {n.body && <p className="truncate text-slate-500">{n.body}</p>}

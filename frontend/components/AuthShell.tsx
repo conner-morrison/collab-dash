@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Check, LayoutGrid } from "lucide-react";
 
 export default function AuthShell({
   title,
@@ -18,7 +19,7 @@ export default function AuthShell({
         <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-brand-400/20 blur-2xl" />
         <Link href="/" className="relative z-10 flex items-center gap-2 text-white">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-lg">◆</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15"><LayoutGrid size={20} /></span>
           <span className="text-lg font-semibold tracking-tight">Collab Dashboard</span>
         </Link>
         <div className="relative z-10">
@@ -33,7 +34,7 @@ export default function AuthShell({
             {["Live chat with read receipts", "Draggable shared sticky notes", "Schedules by date or client", "Instant WebSocket sync"].map(
               (f) => (
                 <li key={f} className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">✓</span>
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20"><Check size={12} /></span>
                   {f}
                 </li>
               )
@@ -50,7 +51,7 @@ export default function AuthShell({
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden">
             <span className="flex items-center gap-2 text-brand-700">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-lg text-white">◆</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white"><LayoutGrid size={20} /></span>
               <span className="text-lg font-semibold">Collab Dashboard</span>
             </span>
           </div>

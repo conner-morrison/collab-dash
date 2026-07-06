@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
+import { ZoomIn, ZoomOut } from "lucide-react";
 
 /** Draw the selected crop area onto a 512px square canvas and export a JPEG blob. */
 async function getCroppedBlob(src: string, area: Area): Promise<Blob> {
@@ -78,7 +79,7 @@ export default function AvatarCropModal({
 
         {/* Zoom control */}
         <div className="flex items-center gap-3 px-6 py-4">
-          <span className="text-sm text-slate-400">➖</span>
+          <ZoomOut size={16} className="text-slate-400" />
           <input
             type="range"
             min={1}
@@ -89,7 +90,7 @@ export default function AvatarCropModal({
             className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-600"
             aria-label="Zoom"
           />
-          <span className="text-sm text-slate-400">➕</span>
+          <ZoomIn size={16} className="text-slate-400" />
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">

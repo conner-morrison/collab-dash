@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Bell, FolderKanban, UserPlus, Wifi } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useAppData } from "@/lib/appdata";
 import { useWs } from "@/lib/ws";
@@ -14,10 +15,10 @@ export default function HomePage() {
   const onlineFriends = friends.filter((f) => onlineUsers.has(f.friend.id)).length;
 
   const stats = [
-    { label: "Workspaces", value: friends.length, icon: "🗂️", href: "/app/friends" },
-    { label: "Friends online", value: onlineFriends, icon: "🟢", href: "/app/friends" },
-    { label: "Pending requests", value: incomingRequests.length, icon: "👋", href: "/app/friends" },
-    { label: "Unread alerts", value: unreadNotifications, icon: "🔔", href: "/app" },
+    { label: "Workspaces", value: friends.length, icon: FolderKanban, href: "/app/friends" },
+    { label: "Friends online", value: onlineFriends, icon: Wifi, href: "/app/friends" },
+    { label: "Pending requests", value: incomingRequests.length, icon: UserPlus, href: "/app/friends" },
+    { label: "Unread alerts", value: unreadNotifications, icon: Bell, href: "/app" },
   ];
 
   return (
@@ -32,7 +33,9 @@ export default function HomePage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {stats.map((s) => (
           <Link key={s.label} href={s.href} className="card p-5 transition-shadow hover:shadow-note">
-            <div className="text-2xl">{s.icon}</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+              <s.icon size={20} />
+            </div>
             <p className="mt-3 text-3xl font-bold text-slate-900">{s.value}</p>
             <p className="text-sm text-slate-500">{s.label}</p>
           </Link>

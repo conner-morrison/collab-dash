@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Home, ShieldCheck, Users } from "lucide-react";
 import Avatar from "./Avatar";
 import { useAppData } from "@/lib/appdata";
 import { useWs } from "@/lib/ws";
@@ -13,7 +14,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  const navItem = (href: string, label: string, icon: string, badge?: number) => {
+  const navItem = (href: string, label: string, icon: React.ReactNode, badge?: number) => {
     const active = pathname === href;
     return (
       <Link
@@ -24,7 +25,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         }`}
       >
         <span className="flex items-center gap-3">
-          <span className="text-base">{icon}</span>
+          <span className="flex h-5 w-5 items-center justify-center">{icon}</span>
           {label}
         </span>
         {badge ? (
@@ -39,9 +40,9 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <nav className="space-y-1 px-3 py-4">
-        {navItem("/app", "Home", "🏠")}
-        {navItem("/app/friends", "Friends", "👥", incomingRequests.length)}
-        {user?.is_admin && navItem("/app/admin", "Admin", "🛠️")}
+        {navItem("/app", "Home", <Home size={18} />)}
+        {navItem("/app/friends", "Friends", <Users size={18} />, incomingRequests.length)}
+        {user?.is_admin && navItem("/app/admin", "Admin", <ShieldCheck size={18} />)}
       </nav>
 
       <div className="px-4 pb-2 pt-2">

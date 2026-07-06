@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { StickyNote as StickyNoteIcon, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useWs } from "@/lib/ws";
@@ -111,7 +112,7 @@ export default function StickyBoard({ dashboardId, friend }: { dashboardId: numb
           {loading && <p className="p-6 text-sm text-slate-400">Loading board…</p>}
           {!loading && notes.length === 0 && (
             <div className="absolute left-1/2 top-24 -translate-x-1/2 text-center text-slate-400">
-              <div className="text-4xl">🗒️</div>
+              <StickyNoteIcon size={40} className="mx-auto" strokeWidth={1.5} />
               <p className="mt-2 text-sm">Empty board. Add your first note!</p>
             </div>
           )}
@@ -140,7 +141,7 @@ export default function StickyBoard({ dashboardId, friend }: { dashboardId: numb
                   className="text-slate-500/60 opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
                   aria-label="Delete note"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               </div>
               <textarea

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Calendar, MessageCircle, StickyNote } from "lucide-react";
 import { useAppData } from "@/lib/appdata";
 import { useWs } from "@/lib/ws";
 import Avatar from "@/components/Avatar";
@@ -12,10 +13,10 @@ import SchedulePanel from "@/components/workspace/SchedulePanel";
 
 type Tab = "board" | "chat" | "schedule";
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "board", label: "Sticky Board", icon: "📝" },
-  { id: "chat", label: "Chat", icon: "💬" },
-  { id: "schedule", label: "Schedule", icon: "📅" },
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "board", label: "Sticky Board", icon: <StickyNote size={16} /> },
+  { id: "chat", label: "Chat", icon: <MessageCircle size={16} /> },
+  { id: "schedule", label: "Schedule", icon: <Calendar size={16} /> },
 ];
 
 export default function WorkspacePage() {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAppData } from "@/lib/appdata";
 import { useAuth } from "@/lib/auth";
@@ -73,7 +74,7 @@ export default function FriendsPage() {
       <section className="card mt-6 p-6">
         <label className="label">Find people</label>
         <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             className="input pl-9"
             placeholder="Search by name or email…"
