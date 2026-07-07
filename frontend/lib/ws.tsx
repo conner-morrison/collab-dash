@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { tokenStore } from "./api";
+import { tokenStore, refreshAccessToken } from "./api";
 import type { WsEvent } from "./types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8010";
@@ -32,11 +32,20 @@ export function WsProvider({ enabled, children }: { enabled: boolean; children: 
       if (!token) return;
       const ws = new WebSocket(`${WS_URL}/ws?token=${encodeURIComponent(token)}`);
       wsRef.current = ws;
+      let opened = false;
 
-      ws.onopen = () => setConnected(true);
-      ws.onclose = () => {
+      ws.onopen = () => {
+        opened = true;
+        setConnected(true);
+      };
+      ws.onclose = async () => {
         setConnected(false);
-        if (!closedByUs) retry = setTimeout(connect, 1500);
+        if (closedByUs) return;
+        // A close before we ever opened means the handshake was rejected — most
+        // likely an expired access token. Refresh it once before reconnecting so
+        // we don't spin forever on a dead token.
+        if (!opened) await refreshAccessToken();
+        retry = setTimeout(connect, 1500);
       };
       ws.onmessage = (ev) => {
         let msg: WsEvent;
