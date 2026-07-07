@@ -47,6 +47,8 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   // undefined = closed, null = creating, item = editing
   const [formItem, setFormItem] = useState<ScheduleItem | null | undefined>(undefined);
+  // Entry pending deletion — drives the confirmation dialog.
+  const [pendingDelete, setPendingDelete] = useState<ScheduleItem | null>(null);
 
   function toggleClient(key: string) {
     setExpandedClients((prev) => {
@@ -127,9 +129,10 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
     api(`/api/dashboards/${dashboardId}/schedules/${item.id}`, { method: "PATCH", body: { status } }).catch(() => {});
   }
 
-  async function remove(item: ScheduleItem) {
-    const label = item.task?.trim() || item.client?.trim() || "this entry";
-    if (!confirm(`Delete “${label}”? This can't be undone.`)) return;
+  function confirmDelete() {
+    const item = pendingDelete;
+    if (!item) return;
+    setPendingDelete(null);
     setItems((prev) => prev.filter((x) => x.id !== item.id));
     api(`/api/dashboards/${dashboardId}/schedules/${item.id}`, { method: "DELETE" }).catch(() => {});
   }
@@ -273,7 +276,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                           Edit
                         </button>
                         <button
-                          onClick={() => remove(it)}
+                          onClick={() => setPendingDelete(it)}
                           className="mt-1 shrink-0 text-slate-300 hover:text-red-500"
                           aria-label="Delete entry"
                         >
@@ -318,6 +321,53 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
           onSaved={reload}
         />
       )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          entry={pendingDelete}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConfirmDialog({
+  entry,
+  onCancel,
+  onConfirm,
+}: {
+  entry: ScheduleItem;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const label = entry.task?.trim() || entry.client?.trim() || "this entry";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40" onClick={onCancel} />
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        className="relative z-10 w-full max-w-sm animate-fade-in rounded-2xl bg-white p-6 shadow-note"
+      >
+        <h3 className="text-lg font-semibold text-slate-900">Delete schedule entry?</h3>
+        <p className="mt-2 text-sm text-slate-500">
+          “<span className="font-medium text-slate-700">{label}</span>” will be permanently removed. This can't be undone.
+        </p>
+        <div className="mt-6 flex justify-end gap-2">
+          <button type="button" className="btn-ghost" onClick={onCancel} autoFocus>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-200"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
