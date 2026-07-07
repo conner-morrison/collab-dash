@@ -38,7 +38,7 @@ export class ApiError extends Error {
   }
 }
 
-async function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<boolean> {
   const refresh = tokenStore.refresh;
   if (!refresh) return false;
   const res = await fetch(`${API_URL}/api/auth/refresh`, {
