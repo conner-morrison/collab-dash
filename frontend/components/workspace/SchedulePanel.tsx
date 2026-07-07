@@ -127,9 +127,11 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
     api(`/api/dashboards/${dashboardId}/schedules/${item.id}`, { method: "PATCH", body: { status } }).catch(() => {});
   }
 
-  async function remove(id: number) {
-    setItems((prev) => prev.filter((x) => x.id !== id));
-    api(`/api/dashboards/${dashboardId}/schedules/${id}`, { method: "DELETE" }).catch(() => {});
+  async function remove(item: ScheduleItem) {
+    const label = item.task?.trim() || item.client?.trim() || "this entry";
+    if (!confirm(`Delete “${label}”? This can't be undone.`)) return;
+    setItems((prev) => prev.filter((x) => x.id !== item.id));
+    api(`/api/dashboards/${dashboardId}/schedules/${item.id}`, { method: "DELETE" }).catch(() => {});
   }
 
   // Inline field editing on the card (note / result), saved on blur.
@@ -271,7 +273,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                           Edit
                         </button>
                         <button
-                          onClick={() => remove(it.id)}
+                          onClick={() => remove(it)}
                           className="mt-1 shrink-0 text-slate-300 hover:text-red-500"
                           aria-label="Delete entry"
                         >
