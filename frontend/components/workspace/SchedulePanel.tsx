@@ -134,15 +134,31 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   const scrollRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const didInitialScroll = useRef(false);
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  // Local (wall-clock) today, so date/time comparisons match how entries are entered.
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const todayIso = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }, []);
 
-  // The nearest-upcoming date group (smallest date >= today). groups are
-  // date-descending, so it's the last group that isn't in the past.
-  const upcomingKey = useMemo(() => {
+  // The single very-next schedule entry by date+time (the soonest one that
+  // hasn't started yet). This is the one we focus.
+  const upcomingItemId = useMemo(() => {
     if (view !== "date") return null;
-    const upcoming = groups.filter((g) => g.key >= todayIso);
-    return upcoming.length ? upcoming[upcoming.length - 1].key : null;
-  }, [groups, view, todayIso]);
+    const d = new Date();
+    const nowKey = `${todayIso}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    let bestId: number | null = null;
+    let bestKey = "";
+    for (const it of items) {
+      const key = `${it.date}T${it.time}`;
+      if (key < nowKey) continue;
+      if (bestId === null || key < bestKey) {
+        bestId = it.id;
+        bestKey = key;
+      }
+    }
+    return bestId;
+  }, [items, view, todayIso]);
 
   // Scale/fade each future date-group by how far it sits above the focus line.
   // Uses layout offsets (offsetTop/offsetHeight) so our own transform doesn't
@@ -201,18 +217,14 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   useEffect(() => {
     if (didInitialScroll.current || view !== "date") return;
     const container = scrollRef.current;
-    if (!container) return;
-    // groups are date-descending, so the last group with date >= today is the
-    // nearest upcoming one.
-    const upcoming = groups.filter((g) => g.key >= todayIso);
-    const target = upcoming.length ? upcoming[upcoming.length - 1].key : null;
-    if (!target) return;
-    const el = container.querySelector<HTMLElement>(`[data-schedule-group="${CSS.escape(target)}"]`);
+    if (!container || items.length === 0) return;
+    didInitialScroll.current = true;
+    if (upcomingItemId === null) return;
+    const el = container.querySelector<HTMLElement>(`[data-schedule-item="${upcomingItemId}"]`);
     if (!el) return;
     container.scrollTop = el.offsetTop + el.offsetHeight / 2 - container.clientHeight * FOCUS_RATIO;
-    didInitialScroll.current = true;
     applyDepth();
-  }, [groups, view, todayIso, applyDepth]);
+  }, [items, upcomingItemId, view, applyDepth]);
   // ---------------------------------------------------------------------------
 
   async function cycleStatus(item: ScheduleItem) {
@@ -297,7 +309,6 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
           <div className="mx-auto max-w-5xl space-y-6">
             {groups.map((g) => {
               const isClient = view === "client";
-              const isUpcoming = g.key === upcomingKey;
               // By Date: always expanded. By Client: expanded when clicked, or while searching.
               const open = !isClient || expandedClients.has(g.key) || !!query.trim();
               return (
@@ -320,35 +331,33 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                   </button>
                 ) : (
                   <div className="mb-2 flex items-center gap-2">
-                    <h3 className={`text-sm font-semibold ${isUpcoming ? "text-brand-700" : "text-slate-700"}`}>
-                      {formatDateHeading(g.key)}
-                    </h3>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${
-                        isUpcoming ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
+                    <h3 className="text-sm font-semibold text-slate-700">{formatDateHeading(g.key)}</h3>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
                       {g.items.length}
                     </span>
-                    {isUpcoming && (
-                      <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-medium text-white">
-                        Up next
-                      </span>
-                    )}
                   </div>
                 )}
                 {open && (
-                <div
-                  className={`overflow-hidden rounded-xl border bg-white ${
-                    isUpcoming ? "border-brand-300 ring-1 ring-brand-100" : "border-slate-200"
-                  }`}
-                >
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                   {g.items.map((it, i) => (
-                    <div key={it.id} className={`px-4 py-3 ${i > 0 ? "border-t border-slate-100" : ""}`}>
+                    <div
+                      key={it.id}
+                      data-schedule-item={it.id}
+                      className={`px-4 py-3 ${i > 0 ? "border-t border-slate-100" : ""} ${
+                        it.id === upcomingItemId ? "bg-brand-50" : ""
+                      }`}
+                    >
                       <div className="flex items-start gap-3">
                         <span className="w-14 shrink-0 pt-0.5 text-sm font-medium tabular-nums text-slate-500">{it.time}</span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-slate-800">{it.task || "(no task)"}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="truncate font-medium text-slate-800">{it.task || "(no task)"}</p>
+                            {it.id === upcomingItemId && (
+                              <span className="shrink-0 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                                Up next
+                              </span>
+                            )}
+                          </div>
                           <p className="truncate text-sm text-slate-400">
                             {view === "date" ? it.client : formatDateHeading(it.date)}
                           </p>
