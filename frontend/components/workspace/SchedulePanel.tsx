@@ -1,10 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, ChevronDown, Link2, Search, X } from "lucide-react";
+import { Briefcase, Building2, CalendarDays, ChevronDown, Link2, Pencil, Search, UserRound, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useWs } from "@/lib/ws";
-import type { ScheduleItem, ScheduleReference } from "@/lib/types";
+import type {
+  ClientItem,
+  ClientSource,
+  ClientStatus,
+  ClientType,
+  ScheduleItem,
+  ScheduleReference,
+} from "@/lib/types";
 
 function normalizeUrl(url: string): string {
   const u = url.trim();
@@ -34,6 +41,34 @@ const STATUS_LABEL: Record<string, string> = {
 };
 const NEXT_STATUS: Record<string, string> = { planned: "in_progress", in_progress: "done", done: "planned" };
 
+// ---- Client info (shown per client in the By Client view) ----
+const CLIENT_STATUS_OPTIONS: ClientStatus[] = ["screening", "intro", "tech", "background", "contract", "working"];
+const CLIENT_STATUS_LABEL: Record<ClientStatus, string> = {
+  screening: "Screening",
+  intro: "Intro",
+  tech: "Tech",
+  background: "Background",
+  contract: "Contract",
+  working: "Working",
+};
+const CLIENT_STATUS_STYLES: Record<ClientStatus, string> = {
+  screening: "bg-slate-100 text-slate-600",
+  intro: "bg-sky-100 text-sky-700",
+  tech: "bg-violet-100 text-violet-700",
+  background: "bg-amber-100 text-amber-700",
+  contract: "bg-orange-100 text-orange-700",
+  working: "bg-emerald-100 text-emerald-700",
+};
+const CLIENT_TYPE_OPTIONS: ClientType[] = ["job", "project"];
+const CLIENT_TYPE_LABEL: Record<ClientType, string> = { job: "Job", project: "Project" };
+const CLIENT_SOURCE_OPTIONS: ClientSource[] = ["upwork", "outreach", "invite", "introducer"];
+const CLIENT_SOURCE_LABEL: Record<ClientSource, string> = {
+  upwork: "Upwork",
+  outreach: "Outreach",
+  invite: "Invite",
+  introducer: "Introducer",
+};
+
 // "Depth" effect for the By Date view: entries further in the future recede
 // (shrink + fade); the focus line is where the nearest-upcoming entry sits.
 const FOCUS_RATIO = 0.62; // focus line as a fraction of the viewport height
@@ -48,6 +83,7 @@ function formatDateHeading(iso: string): string {
 export default function SchedulePanel({ dashboardId }: { dashboardId: number }) {
   const { subscribe } = useWs();
   const [items, setItems] = useState<ScheduleItem[]>([]);
+  const [clients, setClients] = useState<ClientItem[]>([]);
   const [view, setView] = useState<View>("date");
   const [query, setQuery] = useState("");
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
@@ -55,6 +91,15 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   const [formItem, setFormItem] = useState<ScheduleItem | null | undefined>(undefined);
   // Entry pending deletion — drives the confirmation dialog.
   const [pendingDelete, setPendingDelete] = useState<ScheduleItem | null>(null);
+  // Client-info editor: { name, existing } when open, undefined when closed.
+  const [clientForm, setClientForm] = useState<{ name: string; existing: ClientItem | null } | undefined>(undefined);
+
+  // Client info keyed by client name, for the By Client view.
+  const clientsByName = useMemo(() => {
+    const m = new Map<string, ClientItem>();
+    for (const c of clients) m.set(c.name, c);
+    return m;
+  }, [clients]);
 
   function toggleClient(key: string) {
     setExpandedClients((prev) => {
@@ -65,8 +110,17 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   }
 
   const reload = useCallback(async () => {
-    const data = await api<{ items: ScheduleItem[] }>(`/api/dashboards/${dashboardId}/schedules`);
-    setItems(data.items);
+    const [sched, cl] = await Promise.all([
+      api<{ items: ScheduleItem[] }>(`/api/dashboards/${dashboardId}/schedules`),
+      api<{ items: ClientItem[] }>(`/api/dashboards/${dashboardId}/clients`),
+    ]);
+    setItems(sched.items);
+    setClients(cl.items);
+  }, [dashboardId]);
+
+  const reloadClients = useCallback(async () => {
+    const cl = await api<{ items: ClientItem[] }>(`/api/dashboards/${dashboardId}/clients`);
+    setClients(cl.items);
   }, [dashboardId]);
 
   useEffect(() => {
@@ -87,6 +141,18 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
       subscribe("schedule_deleted", (d: { id: number; dashboard_id: number }) => {
         if (d.dashboard_id !== dashboardId) return;
         setItems((prev) => prev.filter((x) => x.id !== d.id));
+      }),
+      subscribe("client_created", (c: ClientItem) => {
+        if (c.dashboard_id !== dashboardId) return;
+        setClients((prev) => (prev.some((x) => x.id === c.id) ? prev : [...prev, c]));
+      }),
+      subscribe("client_updated", (c: ClientItem) => {
+        if (c.dashboard_id !== dashboardId) return;
+        setClients((prev) => prev.map((x) => (x.id === c.id ? c : x)));
+      }),
+      subscribe("client_deleted", (d: { id: number; dashboard_id: number }) => {
+        if (d.dashboard_id !== dashboardId) return;
+        setClients((prev) => prev.filter((x) => x.id !== d.id));
       }),
     ];
     return () => unsub.forEach((u) => u());
@@ -314,21 +380,14 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
               return (
               <div key={g.key} data-schedule-group={g.key}>
                 {isClient ? (
-                  <button
-                    onClick={() => toggleClient(g.key)}
-                    className="mb-2 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:bg-slate-50"
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate font-semibold text-slate-800">{g.key}</span>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                        {g.items.length}
-                      </span>
-                    </span>
-                    <ChevronDown
-                      size={18}
-                      className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
-                    />
-                  </button>
+                  <ClientHeader
+                    name={g.key}
+                    count={g.items.length}
+                    info={clientsByName.get(g.key) ?? null}
+                    open={open}
+                    onToggle={() => toggleClient(g.key)}
+                    onEdit={() => setClientForm({ name: g.key, existing: clientsByName.get(g.key) ?? null })}
+                  />
                 ) : (
                   <div className="mb-2 flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-slate-700">{formatDateHeading(g.key)}</h3>
@@ -446,6 +505,84 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
           onConfirm={confirmDelete}
         />
       )}
+
+      {clientForm && (
+        <ClientInfoForm
+          dashboardId={dashboardId}
+          name={clientForm.name}
+          existing={clientForm.existing}
+          onClose={() => setClientForm(undefined)}
+          onSaved={reloadClients}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Header for a client group in the By Client view: shows the client's info and
+ * toggles the related schedule entries when clicked. */
+function ClientHeader({
+  name,
+  count,
+  info,
+  open,
+  onToggle,
+  onEdit,
+}: {
+  name: string;
+  count: number;
+  info: ClientItem | null;
+  open: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="mb-2 flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <button onClick={onToggle} className="flex min-w-0 flex-1 flex-col items-start text-left">
+        <div className="flex w-full items-center gap-2">
+          <span className="truncate font-semibold text-slate-800">{name}</span>
+          {info?.company && (
+            <span className="flex min-w-0 items-center gap-1 truncate text-sm text-slate-400">
+              <Building2 size={13} className="shrink-0" />
+              {info.company}
+            </span>
+          )}
+          <span className="ml-auto shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+            {count}
+          </span>
+          <ChevronDown size={18} className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        </div>
+        {info ? (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CLIENT_STATUS_STYLES[info.status]}`}>
+              {CLIENT_STATUS_LABEL[info.status]}
+            </span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+              {CLIENT_TYPE_LABEL[info.type]}
+            </span>
+            <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+              {CLIENT_SOURCE_LABEL[info.source]}
+              {info.source === "introducer" && info.introducer ? ` · ${info.introducer}` : ""}
+            </span>
+            {info.title && (
+              <span className="flex items-center gap-1 text-xs text-slate-500">
+                <Briefcase size={12} className="shrink-0 text-slate-400" />
+                {info.title}
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="mt-1 text-xs text-slate-400">No client info yet — add company, status, type…</span>
+        )}
+      </button>
+      <button
+        onClick={onEdit}
+        className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+        aria-label="Edit client info"
+      >
+        <Pencil size={13} />
+        <span className="hidden sm:inline">{info ? "Edit info" : "Add info"}</span>
+      </button>
     </div>
   );
 }
@@ -626,6 +763,151 @@ function ScheduleForm({
           </button>
           <button className="btn-primary" disabled={busy}>
             {busy ? "Saving…" : existing ? "Save changes" : "Add entry"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/** Edit the info attached to a client (matched to schedule entries by name). */
+function ClientInfoForm({
+  dashboardId,
+  name,
+  existing,
+  onClose,
+  onSaved,
+}: {
+  dashboardId: number;
+  name: string; // the client name (join key with schedule entries) — not editable here
+  existing: ClientItem | null; // null = no info record yet
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState({
+    company: existing?.company ?? "",
+    status: (existing?.status ?? "screening") as ClientStatus,
+    type: (existing?.type ?? "job") as ClientType,
+    title: existing?.title ?? "",
+    source: (existing?.source ?? "upwork") as ClientSource,
+    introducer: existing?.introducer ?? "",
+  });
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const body = { ...form, introducer: form.source === "introducer" ? form.introducer.trim() : "" };
+    try {
+      if (existing) {
+        await api(`/api/dashboards/${dashboardId}/clients/${existing.id}`, { method: "PATCH", body });
+      } else {
+        await api(`/api/dashboards/${dashboardId}/clients`, { method: "POST", body: { name, ...body } });
+      }
+      await onSaved();
+      onClose();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40" onClick={onClose} />
+      <form
+        onSubmit={submit}
+        className="relative z-10 max-h-[88vh] w-full max-w-md animate-fade-in overflow-y-auto rounded-2xl bg-white p-6 shadow-note"
+      >
+        <h3 className="text-lg font-semibold text-slate-900">Client info</h3>
+        <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+          <UserRound size={14} className="shrink-0" />
+          {name}
+        </p>
+
+        <div className="mt-4">
+          <label className="label">Company</label>
+          <input
+            className="input"
+            value={form.company}
+            onChange={(e) => setForm({ ...form, company: e.target.value })}
+            placeholder="e.g. Acme Corp"
+          />
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Status</label>
+            <select
+              className="input"
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value as ClientStatus })}
+            >
+              {CLIENT_STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {CLIENT_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Type</label>
+            <select
+              className="input"
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value as ClientType })}
+            >
+              {CLIENT_TYPE_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {CLIENT_TYPE_LABEL[t]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <label className="label">Title</label>
+          <input
+            className="input"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="e.g. Senior Frontend Engineer"
+          />
+        </div>
+
+        <div className="mt-3">
+          <label className="label">From</label>
+          <select
+            className="input"
+            value={form.source}
+            onChange={(e) => setForm({ ...form, source: e.target.value as ClientSource })}
+          >
+            {CLIENT_SOURCE_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {CLIENT_SOURCE_LABEL[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {form.source === "introducer" && (
+          <div className="mt-3">
+            <label className="label">Introducer</label>
+            <input
+              className="input"
+              value={form.introducer}
+              onChange={(e) => setForm({ ...form, introducer: e.target.value })}
+              placeholder="Who introduced this client?"
+            />
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button type="button" className="btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn-primary" disabled={busy}>
+            {busy ? "Saving…" : "Save info"}
           </button>
         </div>
       </form>
