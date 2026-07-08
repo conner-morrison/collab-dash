@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, Link2, Search, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useWs } from "@/lib/ws";
@@ -34,6 +34,12 @@ const STATUS_LABEL: Record<string, string> = {
 };
 const NEXT_STATUS: Record<string, string> = { planned: "in_progress", in_progress: "done", done: "planned" };
 
+// "Depth" effect for the By Date view: entries further in the future recede
+// (shrink + fade); the focus line is where the nearest-upcoming entry sits.
+const FOCUS_RATIO = 0.62; // focus line as a fraction of the viewport height
+const MIN_SCALE = 0.72;
+const MIN_OPACITY = 0.5;
+
 function formatDateHeading(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
@@ -64,6 +70,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   }, [dashboardId]);
 
   useEffect(() => {
+    didInitialScroll.current = false;
     reload();
   }, [reload]);
 
@@ -122,6 +129,83 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
         items: [...list].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)),
       }));
   }, [filtered, view]);
+
+  // --- By Date "depth" effect ------------------------------------------------
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const didInitialScroll = useRef(false);
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  // Scale/fade each future date-group by how far it sits above the focus line.
+  // Uses layout offsets (offsetTop/offsetHeight) so our own transform doesn't
+  // feed back into the measurement.
+  const applyDepth = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const active = view === "date";
+    const focusY = container.clientHeight * FOCUS_RATIO;
+    container.querySelectorAll<HTMLElement>("[data-schedule-group]").forEach((el) => {
+      const date = el.dataset.scheduleGroup ?? "";
+      // Only strictly-future groups recede; today and the past stay natural.
+      if (!active || date <= todayIso) {
+        el.style.transform = "";
+        el.style.opacity = "";
+        el.style.transformOrigin = "";
+        el.style.willChange = "";
+        return;
+      }
+      const centerY = el.offsetTop - container.scrollTop + el.offsetHeight / 2;
+      const above = focusY - centerY;
+      if (above <= 0) {
+        el.style.transform = "scale(1)";
+        el.style.opacity = "1";
+        return;
+      }
+      const t = Math.min(1, above / focusY);
+      el.style.transform = `scale(${(1 - t * (1 - MIN_SCALE)).toFixed(3)})`;
+      el.style.opacity = (1 - t * (1 - MIN_OPACITY)).toFixed(3);
+      el.style.transformOrigin = "center bottom";
+      el.style.willChange = "transform";
+    });
+  }, [view, todayIso]);
+
+  const onScroll = useCallback(() => {
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      applyDepth();
+    });
+  }, [applyDepth]);
+
+  // Re-apply when the rendered groups or view change, and on resize.
+  useEffect(() => {
+    applyDepth();
+  }, [applyDepth, groups]);
+
+  useEffect(() => {
+    const onResize = () => applyDepth();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [applyDepth]);
+
+  // Once data is ready, center the nearest-upcoming entry so the past sits
+  // below (scroll down) and further-future entries recede above (scroll up).
+  useEffect(() => {
+    if (didInitialScroll.current || view !== "date") return;
+    const container = scrollRef.current;
+    if (!container) return;
+    // groups are date-descending, so the last group with date >= today is the
+    // nearest upcoming one.
+    const upcoming = groups.filter((g) => g.key >= todayIso);
+    const target = upcoming.length ? upcoming[upcoming.length - 1].key : null;
+    if (!target) return;
+    const el = container.querySelector<HTMLElement>(`[data-schedule-group="${CSS.escape(target)}"]`);
+    if (!el) return;
+    container.scrollTop = el.offsetTop + el.offsetHeight / 2 - container.clientHeight * FOCUS_RATIO;
+    didInitialScroll.current = true;
+    applyDepth();
+  }, [groups, view, todayIso, applyDepth]);
+  // ---------------------------------------------------------------------------
 
   async function cycleStatus(item: ScheduleItem) {
     const status = NEXT_STATUS[item.status] as ScheduleItem["status"];
@@ -186,7 +270,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+      <div ref={scrollRef} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
         {groups.length === 0 ? (
           <div className="mx-auto mt-10 max-w-sm text-center text-slate-400">
             {query.trim() ? (
@@ -208,7 +292,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
               // By Date: always expanded. By Client: expanded when clicked, or while searching.
               const open = !isClient || expandedClients.has(g.key) || !!query.trim();
               return (
-              <div key={g.key}>
+              <div key={g.key} data-schedule-group={g.key}>
                 {isClient ? (
                   <button
                     onClick={() => toggleClient(g.key)}
