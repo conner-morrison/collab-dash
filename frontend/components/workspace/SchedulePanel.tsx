@@ -59,6 +59,14 @@ const CLIENT_STATUS_STYLES: Record<ClientStatus, string> = {
   contract: "bg-orange-100 text-orange-700",
   working: "bg-emerald-100 text-emerald-700",
 };
+const CLIENT_STATUS_DOT: Record<ClientStatus, string> = {
+  screening: "bg-slate-400",
+  intro: "bg-sky-500",
+  tech: "bg-violet-500",
+  background: "bg-amber-500",
+  contract: "bg-orange-500",
+  working: "bg-emerald-500",
+};
 const CLIENT_TYPE_OPTIONS: ClientType[] = ["job", "project"];
 const CLIENT_TYPE_LABEL: Record<ClientType, string> = { job: "Job", project: "Project" };
 const CLIENT_SOURCE_OPTIONS: ClientSource[] = ["upwork", "outreach", "invite", "introducer"];
@@ -91,8 +99,11 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   const [formItem, setFormItem] = useState<ScheduleItem | null | undefined>(undefined);
   // Entry pending deletion — drives the confirmation dialog.
   const [pendingDelete, setPendingDelete] = useState<ScheduleItem | null>(null);
-  // Client-info editor: { name, existing } when open, undefined when closed.
-  const [clientForm, setClientForm] = useState<{ name: string; existing: ClientItem | null } | undefined>(undefined);
+  // Client editor. lockName=true when editing a client tied to schedule entries
+  // (name is the join key); false when adding a brand-new client.
+  const [clientForm, setClientForm] = useState<
+    { name: string; existing: ClientItem | null; lockName: boolean } | undefined
+  >(undefined);
 
   // Client info keyed by client name, for the By Client view.
   const clientsByName = useMemo(() => {
@@ -186,6 +197,17 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(it);
     }
+    // By Client: also surface clients that have an info record but no (matching)
+    // schedule entries yet, so freshly-added clients still appear.
+    if (view === "client") {
+      const q = query.trim().toLowerCase();
+      for (const c of clients) {
+        if (map.has(c.name)) continue;
+        const hay = [c.name, c.company, c.title, CLIENT_SOURCE_LABEL[c.source], c.introducer].join(" ").toLowerCase();
+        if (q && !hay.includes(q)) continue;
+        map.set(c.name, []);
+      }
+    }
     return [...map.entries()]
       // By Date: newest date group first. By Client: keep clients alphabetical.
       .sort((a, b) => (view === "date" ? b[0].localeCompare(a[0]) : a[0].localeCompare(b[0])))
@@ -194,7 +216,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
         // Most recent entry on top within each group.
         items: [...list].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time)),
       }));
-  }, [filtered, view]);
+  }, [filtered, view, clients, query]);
 
   // --- By Date "depth" effect ------------------------------------------------
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -332,9 +354,15 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
               </button>
             ))}
           </div>
-          <button className="btn-primary" onClick={() => setFormItem(null)}>
-            + Add entry
-          </button>
+          {view === "client" ? (
+            <button className="btn-primary" onClick={() => setClientForm({ name: "", existing: null, lockName: false })}>
+              + Add client
+            </button>
+          ) : (
+            <button className="btn-primary" onClick={() => setFormItem(null)}>
+              + Add entry
+            </button>
+          )}
         </div>
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -386,7 +414,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                     info={clientsByName.get(g.key) ?? null}
                     open={open}
                     onToggle={() => toggleClient(g.key)}
-                    onEdit={() => setClientForm({ name: g.key, existing: clientsByName.get(g.key) ?? null })}
+                    onEdit={() => setClientForm({ name: g.key, existing: clientsByName.get(g.key) ?? null, lockName: true })}
                   />
                 ) : (
                   <div className="mb-2 flex items-center gap-2">
@@ -398,6 +426,11 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                 )}
                 {open && (
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  {g.items.length === 0 && (
+                    <p className="px-4 py-6 text-center text-sm text-slate-400">
+                      No schedule entries for this client yet.
+                    </p>
+                  )}
                   {g.items.map((it, i) => (
                     <div
                       key={it.id}
@@ -511,6 +544,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
           dashboardId={dashboardId}
           name={clientForm.name}
           existing={clientForm.existing}
+          lockName={clientForm.lockName}
           onClose={() => setClientForm(undefined)}
           onSaved={reloadClients}
         />
@@ -547,16 +581,23 @@ function ClientHeader({
               {info.company}
             </span>
           )}
-          <span className="ml-auto shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+          {info && (
+            <span
+              className={`ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold uppercase tracking-wide ring-1 ring-inset ring-black/5 ${CLIENT_STATUS_STYLES[info.status]}`}
+            >
+              <span className={`h-2 w-2 rounded-full ${CLIENT_STATUS_DOT[info.status]}`} />
+              {CLIENT_STATUS_LABEL[info.status]}
+            </span>
+          )}
+          <span
+            className={`${info ? "" : "ml-auto"} shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500`}
+          >
             {count}
           </span>
           <ChevronDown size={18} className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
         </div>
         {info ? (
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CLIENT_STATUS_STYLES[info.status]}`}>
-              {CLIENT_STATUS_LABEL[info.status]}
-            </span>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
               {CLIENT_TYPE_LABEL[info.type]}
             </span>
@@ -775,15 +816,18 @@ function ClientInfoForm({
   dashboardId,
   name,
   existing,
+  lockName,
   onClose,
   onSaved,
 }: {
   dashboardId: number;
-  name: string; // the client name (join key with schedule entries) — not editable here
+  name: string; // initial client name (join key with schedule entries)
   existing: ClientItem | null; // null = no info record yet
+  lockName: boolean; // true when the name is fixed (tied to schedule entries)
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [clientName, setClientName] = useState(name);
   const [form, setForm] = useState({
     company: existing?.company ?? "",
     status: (existing?.status ?? "screening") as ClientStatus,
@@ -802,7 +846,7 @@ function ClientInfoForm({
       if (existing) {
         await api(`/api/dashboards/${dashboardId}/clients/${existing.id}`, { method: "PATCH", body });
       } else {
-        await api(`/api/dashboards/${dashboardId}/clients`, { method: "POST", body: { name, ...body } });
+        await api(`/api/dashboards/${dashboardId}/clients`, { method: "POST", body: { name: clientName.trim(), ...body } });
       }
       await onSaved();
       onClose();
@@ -818,11 +862,25 @@ function ClientInfoForm({
         onSubmit={submit}
         className="relative z-10 max-h-[88vh] w-full max-w-md animate-fade-in overflow-y-auto rounded-2xl bg-white p-6 shadow-note"
       >
-        <h3 className="text-lg font-semibold text-slate-900">Client info</h3>
-        <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-          <UserRound size={14} className="shrink-0" />
-          {name}
-        </p>
+        <h3 className="text-lg font-semibold text-slate-900">{lockName ? "Client info" : "New client"}</h3>
+        {lockName ? (
+          <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+            <UserRound size={14} className="shrink-0" />
+            {name}
+          </p>
+        ) : (
+          <div className="mt-4">
+            <label className="label">Name</label>
+            <input
+              className="input"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="e.g. Jane Doe"
+              required
+              autoFocus
+            />
+          </div>
+        )}
 
         <div className="mt-4">
           <label className="label">Company</label>
@@ -906,8 +964,8 @@ function ClientInfoForm({
           <button type="button" className="btn-ghost" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn-primary" disabled={busy}>
-            {busy ? "Saving…" : "Save info"}
+          <button className="btn-primary" disabled={busy || (!lockName && !clientName.trim())}>
+            {busy ? "Saving…" : lockName ? "Save info" : "Add client"}
           </button>
         </div>
       </form>
