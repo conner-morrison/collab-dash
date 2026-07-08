@@ -1,7 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Briefcase, Building2, CalendarDays, ChevronDown, Link2, Pencil, Search, UserRound, X } from "lucide-react";
+import {
+  Briefcase,
+  Building2,
+  CalendarDays,
+  CalendarPlus,
+  ChevronDown,
+  Link2,
+  Pencil,
+  Search,
+  UserRound,
+  X,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import { useWs } from "@/lib/ws";
 import type {
@@ -97,6 +108,8 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   // undefined = closed, null = creating, item = editing
   const [formItem, setFormItem] = useState<ScheduleItem | null | undefined>(undefined);
+  // When adding an entry from a client header, lock the client field to this name.
+  const [lockedClient, setLockedClient] = useState<string | null>(null);
   // Entry pending deletion — drives the confirmation dialog.
   const [pendingDelete, setPendingDelete] = useState<ScheduleItem | null>(null);
   // Client editor. lockName=true when editing a client tied to schedule entries
@@ -415,6 +428,10 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                     open={open}
                     onToggle={() => toggleClient(g.key)}
                     onEdit={() => setClientForm({ name: g.key, existing: clientsByName.get(g.key) ?? null, lockName: true })}
+                    onAddSchedule={() => {
+                      setLockedClient(g.key);
+                      setFormItem(null);
+                    }}
                   />
                 ) : (
                   <div className="mb-2 flex items-center gap-2">
@@ -526,7 +543,11 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
         <ScheduleForm
           dashboardId={dashboardId}
           existing={formItem}
-          onClose={() => setFormItem(undefined)}
+          lockedClient={lockedClient}
+          onClose={() => {
+            setFormItem(undefined);
+            setLockedClient(null);
+          }}
           onSaved={reload}
         />
       )}
@@ -562,6 +583,7 @@ function ClientHeader({
   open,
   onToggle,
   onEdit,
+  onAddSchedule,
 }: {
   name: string;
   count: number;
@@ -569,6 +591,7 @@ function ClientHeader({
   open: boolean;
   onToggle: () => void;
   onEdit: () => void;
+  onAddSchedule: () => void;
 }) {
   return (
     <div className="mb-2 flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
@@ -616,14 +639,24 @@ function ClientHeader({
           <span className="mt-1 text-xs text-slate-400">No client info yet — add company, status, type…</span>
         )}
       </button>
-      <button
-        onClick={onEdit}
-        className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
-        aria-label="Edit client info"
-      >
-        <Pencil size={13} />
-        <span className="hidden sm:inline">{info ? "Edit info" : "Add info"}</span>
-      </button>
+      <div className="flex shrink-0 flex-col items-stretch gap-1">
+        <button
+          onClick={onEdit}
+          className="flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+          aria-label="Edit client info"
+        >
+          <Pencil size={13} />
+          <span className="hidden sm:inline">{info ? "Edit info" : "Add info"}</span>
+        </button>
+        <button
+          onClick={onAddSchedule}
+          className="flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Add schedule for this client"
+        >
+          <CalendarPlus size={13} />
+          <span className="hidden sm:inline">Add schedule</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -670,14 +703,17 @@ function ConfirmDialog({
 function ScheduleForm({
   dashboardId,
   existing,
+  lockedClient,
   onClose,
   onSaved,
 }: {
   dashboardId: number;
   existing: ScheduleItem | null; // null = create
+  lockedClient?: string | null; // when creating from a client, fixes the client field
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const clientLocked = !existing && !!lockedClient;
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<{
     date: string;
@@ -688,7 +724,7 @@ function ScheduleForm({
   }>({
     date: existing?.date ?? today,
     time: existing?.time ?? "09:00",
-    client: existing?.client ?? "",
+    client: existing?.client ?? lockedClient ?? "",
     task: existing?.task ?? "",
     status: existing?.status ?? "planned",
   });
@@ -743,7 +779,14 @@ function ScheduleForm({
         </div>
         <div className="mt-3">
           <label className="label">Client</label>
-          <input className="input" value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} placeholder="e.g. Acme Corp" required />
+          <input
+            className={`input ${clientLocked ? "cursor-not-allowed bg-slate-100 text-slate-500" : ""}`}
+            value={form.client}
+            onChange={(e) => setForm({ ...form, client: e.target.value })}
+            placeholder="e.g. Acme Corp"
+            required
+            readOnly={clientLocked}
+          />
         </div>
         <div className="mt-3">
           <label className="label">Task</label>
