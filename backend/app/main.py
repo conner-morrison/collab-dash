@@ -16,7 +16,7 @@ from . import events
 from .bootstrap import ensure_admin, run_migrations
 from .config import settings
 from .database import Base, engine
-from .routers import admin, auth, chat, dashboard, friends, notifications, profile, schedule, ws
+from .routers import admin, auth, chat, clients, dashboard, friends, notifications, profile, schedule, ws
 
 logging.basicConfig(level=logging.INFO)
 
@@ -46,6 +46,7 @@ app.include_router(chat.router)
 app.include_router(dashboard.router)
 app.include_router(schedule.router)
 app.include_router(schedule.upcoming_router)
+app.include_router(clients.router)
 app.include_router(notifications.router)
 app.include_router(profile.router)
 app.include_router(admin.router)

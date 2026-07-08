@@ -94,6 +94,23 @@ export interface ScheduleGroup {
   items: ScheduleItem[];
 }
 
+export type ClientStatus = "screening" | "intro" | "tech" | "background" | "contract" | "working";
+export type ClientType = "job" | "project";
+export type ClientSource = "upwork" | "outreach" | "invite" | "introducer";
+
+export interface ClientItem {
+  id: number;
+  dashboard_id: number;
+  author_id: number;
+  name: string;
+  company: string;
+  status: ClientStatus;
+  type: ClientType;
+  title: string;
+  source: ClientSource;
+  introducer: string;
+}
+
 export interface Notification {
   id: number;
   type: string;

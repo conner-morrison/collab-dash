@@ -3,20 +3,22 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Calendar, MessageCircle, StickyNote } from "lucide-react";
+import { Calendar, MessageCircle, StickyNote, Users } from "lucide-react";
 import { useAppData } from "@/lib/appdata";
 import { useWs } from "@/lib/ws";
 import Avatar from "@/components/Avatar";
 import StickyBoard from "@/components/workspace/StickyBoard";
 import ChatPanel from "@/components/workspace/ChatPanel";
 import SchedulePanel from "@/components/workspace/SchedulePanel";
+import ClientsPanel from "@/components/workspace/ClientsPanel";
 
-type Tab = "board" | "chat" | "schedule";
+type Tab = "board" | "chat" | "schedule" | "clients";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "board", label: "Sticky Board", icon: <StickyNote size={16} /> },
   { id: "chat", label: "Chat", icon: <MessageCircle size={16} /> },
   { id: "schedule", label: "Schedule", icon: <Calendar size={16} /> },
+  { id: "clients", label: "Clients", icon: <Users size={16} /> },
 ];
 
 export default function WorkspacePage() {
@@ -93,6 +95,7 @@ export default function WorkspacePage() {
           <ChatPanel friendshipId={friendship.friendship_id} friend={friendship.friend} />
         )}
         {tab === "schedule" && <SchedulePanel dashboardId={friendship.dashboard_id} />}
+        {tab === "clients" && <ClientsPanel dashboardId={friendship.dashboard_id} />}
       </div>
     </div>
   );

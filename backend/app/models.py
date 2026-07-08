@@ -106,6 +106,9 @@ class SharedDashboard(Base):
     schedules: Mapped[list["Schedule"]] = relationship(
         back_populates="dashboard", cascade="all, delete-orphan"
     )
+    clients: Mapped[list["Client"]] = relationship(
+        back_populates="dashboard", cascade="all, delete-orphan"
+    )
 
 
 class Message(Base):
@@ -159,6 +162,30 @@ class Schedule(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     dashboard: Mapped[SharedDashboard] = relationship(back_populates="schedules")
+
+
+class Client(Base):
+    """A client tracked in a shared workspace's client channel."""
+
+    __tablename__ = "clients"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dashboard_id: Mapped[int] = mapped_column(
+        ForeignKey("shared_dashboards.id", ondelete="CASCADE"), index=True
+    )
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(160), index=True)
+    company: Mapped[str] = mapped_column(String(200), default="")
+    # screening | intro | tech | background | contract | working
+    status: Mapped[str] = mapped_column(String(20), default="screening")
+    type: Mapped[str] = mapped_column(String(20), default="job")  # job | project
+    title: Mapped[str] = mapped_column(String(300), default="")
+    source: Mapped[str] = mapped_column(String(20), default="upwork")  # Upwork | outreach | invite | introducer
+    introducer: Mapped[str] = mapped_column(String(200), default="")  # who introduced (when source=introducer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    dashboard: Mapped[SharedDashboard] = relationship(back_populates="clients")
 
 
 class Notification(Base):

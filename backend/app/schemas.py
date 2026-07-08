@@ -209,6 +209,41 @@ class ScheduleUpdate(BaseModel):
     reference_urls: list[ScheduleReference] | None = None
 
 
+# ---------- Clients ----------
+class ClientOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    dashboard_id: int
+    author_id: int
+    name: str
+    company: str = ""
+    status: str
+    type: str
+    title: str = ""
+    source: str
+    introducer: str = ""
+
+
+class ClientCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    company: str = Field(default="", max_length=200)
+    status: str = "screening"
+    type: str = "job"
+    title: str = Field(default="", max_length=300)
+    source: str = "upwork"
+    introducer: str = Field(default="", max_length=200)
+
+
+class ClientUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    company: str | None = None
+    status: str | None = None
+    type: str | None = None
+    title: str | None = None
+    source: str | None = None
+    introducer: str | None = None
+
+
 # ---------- Notifications ----------
 class NotificationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
