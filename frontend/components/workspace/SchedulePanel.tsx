@@ -344,7 +344,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                       key={it.id}
                       data-schedule-item={it.id}
                       className={`px-4 py-3 ${i > 0 ? "border-t border-slate-100" : ""} ${
-                        it.id === upcomingItemId ? "bg-emerald-50" : ""
+                        it.id === upcomingItemId ? "bg-red-50" : ""
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -353,7 +353,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                           <div className="flex items-center gap-2">
                             <p className="truncate font-medium text-slate-800">{it.task || "(no task)"}</p>
                             {it.id === upcomingItemId && (
-                              <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                              <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
                                 Up next
                               </span>
                             )}
