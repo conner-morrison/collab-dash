@@ -136,6 +136,14 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
   const didInitialScroll = useRef(false);
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
+  // The nearest-upcoming date group (smallest date >= today). groups are
+  // date-descending, so it's the last group that isn't in the past.
+  const upcomingKey = useMemo(() => {
+    if (view !== "date") return null;
+    const upcoming = groups.filter((g) => g.key >= todayIso);
+    return upcoming.length ? upcoming[upcoming.length - 1].key : null;
+  }, [groups, view, todayIso]);
+
   // Scale/fade each future date-group by how far it sits above the focus line.
   // Uses layout offsets (offsetTop/offsetHeight) so our own transform doesn't
   // feed back into the measurement.
@@ -289,6 +297,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
           <div className="mx-auto max-w-5xl space-y-6">
             {groups.map((g) => {
               const isClient = view === "client";
+              const isUpcoming = g.key === upcomingKey;
               // By Date: always expanded. By Client: expanded when clicked, or while searching.
               const open = !isClient || expandedClients.has(g.key) || !!query.trim();
               return (
@@ -311,14 +320,29 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                   </button>
                 ) : (
                   <div className="mb-2 flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-slate-700">{formatDateHeading(g.key)}</h3>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                    <h3 className={`text-sm font-semibold ${isUpcoming ? "text-brand-700" : "text-slate-700"}`}>
+                      {formatDateHeading(g.key)}
+                    </h3>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        isUpcoming ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
                       {g.items.length}
                     </span>
+                    {isUpcoming && (
+                      <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-medium text-white">
+                        Up next
+                      </span>
+                    )}
                   </div>
                 )}
                 {open && (
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div
+                  className={`overflow-hidden rounded-xl border bg-white ${
+                    isUpcoming ? "border-brand-300 ring-1 ring-brand-100" : "border-slate-200"
+                  }`}
+                >
                   {g.items.map((it, i) => (
                     <div key={it.id} className={`px-4 py-3 ${i > 0 ? "border-t border-slate-100" : ""}`}>
                       <div className="flex items-start gap-3">
