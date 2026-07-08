@@ -353,7 +353,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                           <div className="flex items-center gap-2">
                             <p className="truncate font-medium text-slate-800">{it.task || "(no task)"}</p>
                             {it.id === upcomingItemId && (
-                              <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                              <span className="shrink-0 rounded-full bg-red-400 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
                                 Up next
                               </span>
                             )}
