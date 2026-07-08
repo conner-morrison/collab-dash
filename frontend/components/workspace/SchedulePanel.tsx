@@ -125,6 +125,23 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
     return m;
   }, [clients]);
 
+  // "About the client" navigation: switch to By Client, reveal + briefly highlight.
+  const [focusClient, setFocusClient] = useState<string | null>(null);
+  const [highlightClient, setHighlightClient] = useState<string | null>(null);
+
+  const goToClient = useCallback((name: string) => {
+    setView("client");
+    setExpandedClients((prev) => new Set(prev).add(name));
+    setFocusClient(name);
+    setHighlightClient(name);
+  }, []);
+
+  useEffect(() => {
+    if (!highlightClient) return;
+    const t = setTimeout(() => setHighlightClient(null), 2200);
+    return () => clearTimeout(t);
+  }, [highlightClient]);
+
   function toggleClient(key: string) {
     setExpandedClients((prev) => {
       const next = new Set(prev);
@@ -326,6 +343,17 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
     container.scrollTop = el.offsetTop + el.offsetHeight / 2 - container.clientHeight * FOCUS_RATIO;
     applyDepth();
   }, [items, upcomingItemId, view, applyDepth]);
+
+  // After "About the client" switches to By Client, scroll the client into view.
+  useEffect(() => {
+    if (!focusClient || view !== "client") return;
+    const container = scrollRef.current;
+    if (container) {
+      const el = container.querySelector<HTMLElement>(`[data-schedule-group="${CSS.escape(focusClient)}"]`);
+      if (el) container.scrollTop = Math.max(0, el.offsetTop - 12);
+    }
+    setFocusClient(null);
+  }, [focusClient, view, groups]);
   // ---------------------------------------------------------------------------
 
   async function cycleStatus(item: ScheduleItem) {
@@ -426,6 +454,7 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                     count={g.items.length}
                     info={clientsByName.get(g.key) ?? null}
                     open={open}
+                    highlight={highlightClient === g.key}
                     onToggle={() => toggleClient(g.key)}
                     onEdit={() => setClientForm({ name: g.key, existing: clientsByName.get(g.key) ?? null, lockName: true })}
                     onAddSchedule={() => {
@@ -495,12 +524,24 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                         >
                           {STATUS_LABEL[it.status]}
                         </button>
-                        <button
-                          onClick={() => setFormItem(it)}
-                          className="mt-0.5 shrink-0 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
-                        >
-                          Edit
-                        </button>
+                        <div className="mt-0.5 flex shrink-0 flex-col items-stretch gap-1">
+                          <button
+                            onClick={() => setFormItem(it)}
+                            className="rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                          >
+                            Edit
+                          </button>
+                          {view === "date" && (
+                            <button
+                              onClick={() => goToClient(it.client)}
+                              className="flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                              title="View this client's info"
+                            >
+                              <UserRound size={12} className="shrink-0" />
+                              About the client
+                            </button>
+                          )}
+                        </div>
                         <button
                           onClick={() => setPendingDelete(it)}
                           className="mt-1 shrink-0 text-slate-300 hover:text-red-500"
@@ -581,6 +622,7 @@ function ClientHeader({
   count,
   info,
   open,
+  highlight,
   onToggle,
   onEdit,
   onAddSchedule,
@@ -589,12 +631,17 @@ function ClientHeader({
   count: number;
   info: ClientItem | null;
   open: boolean;
+  highlight: boolean;
   onToggle: () => void;
   onEdit: () => void;
   onAddSchedule: () => void;
 }) {
   return (
-    <div className="mb-2 flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+    <div
+      className={`mb-2 flex items-start gap-2 rounded-xl border bg-white px-4 py-3 transition-shadow ${
+        highlight ? "border-brand-300 ring-2 ring-brand-200" : "border-slate-200"
+      }`}
+    >
       <button onClick={onToggle} className="flex min-w-0 flex-1 flex-col items-start text-left">
         <div className="flex w-full items-center gap-2">
           <span className="truncate font-semibold text-slate-800">{name}</span>
