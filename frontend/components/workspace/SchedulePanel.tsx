@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Briefcase,
   Building2,
+  CalendarCheck,
   CalendarDays,
   CalendarPlus,
   ChevronDown,
@@ -97,6 +98,30 @@ const MIN_OPACITY = 0.5;
 function formatDateHeading(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+}
+
+/** Build a Google Calendar "create event" link pre-filled from a schedule entry.
+ * Times are local wall-clock (no Z) so Google uses the user's calendar timezone;
+ * entries have no end time, so we default to a 1-hour block. */
+function googleCalendarUrl(it: ScheduleItem): string {
+  const start = new Date(`${it.date}T${it.time || "09:00"}:00`);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const p = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`;
+  const title = it.task?.trim() || it.client?.trim() || "Schedule";
+  const detailLines = [
+    it.client ? `Client: ${it.client}` : "",
+    it.note || "",
+    ...(it.reference_urls ?? []).map((r) => (r.label ? `${r.label}: ${r.url}` : r.url)),
+  ].filter(Boolean);
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${fmt(start)}/${fmt(end)}`,
+  });
+  if (detailLines.length) params.set("details", detailLines.join("\n"));
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 export default function SchedulePanel({ dashboardId }: { dashboardId: number }) {
@@ -541,6 +566,16 @@ export default function SchedulePanel({ dashboardId }: { dashboardId: number }) 
                               About the client
                             </button>
                           )}
+                          <a
+                            href={googleCalendarUrl(it)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                            title="Add this entry to Google Calendar"
+                          >
+                            <CalendarCheck size={12} className="shrink-0" />
+                            Add to Calendar
+                          </a>
                         </div>
                         <button
                           onClick={() => setPendingDelete(it)}
